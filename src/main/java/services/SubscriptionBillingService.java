@@ -287,6 +287,7 @@ public class SubscriptionBillingService {
 
         ClientInvoiceDetail detail = new ClientInvoiceDetail();
         detail.setInvoice(invoice);
+        detail.setArticleCode("99");
         detail.setArticleDescription(description == null || description.isBlank()
                 ? "Abono mensual del servicio"
                 : description.trim());
