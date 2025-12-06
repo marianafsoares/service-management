@@ -5,6 +5,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.mail.Authenticator;
+import javax.mail.AuthenticationFailedException;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
@@ -36,6 +37,12 @@ public class EmailService {
             message.setText(body);
             Transport.send(message);
             return true;
+        } catch (AuthenticationFailedException ex) {
+            LOGGER.log(Level.WARNING,
+                    "No se pudo enviar el mail a " + to
+                            + ". Verificá que la contraseña de la cuenta tenga acceso de aplicación específica.",
+                    ex);
+            return false;
         } catch (MessagingException ex) {
             LOGGER.log(Level.WARNING, "No se pudo enviar el mail a " + to, ex);
             return false;

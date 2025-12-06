@@ -243,7 +243,7 @@ public class SubscriptionBillingService {
             }
         }
         int posNumeric = parseNumeric(pointOfSale);
-        return String.format(Locale.ROOT, "%04d-%07d", posNumeric, currentMax + 1);
+        return String.format(Locale.ROOT, "%04d-%08d", posNumeric, currentMax + 1);
     }
 
     private boolean matchesInvoice(ClientInvoice invoice, String pointOfSale, String invoiceType) {
@@ -272,7 +272,7 @@ public class SubscriptionBillingService {
         if (digits.isEmpty()) {
             return 0;
         }
-        String suffix = digits.length() > 7 ? digits.substring(digits.length() - 7) : digits;
+        String suffix = digits.length() > 8 ? digits.substring(digits.length() - 8) : digits;
         try {
             return Integer.parseInt(suffix);
         } catch (NumberFormatException ignored) {
@@ -293,6 +293,8 @@ public class SubscriptionBillingService {
                 : description.trim());
         detail.setQuantity(BigDecimal.ONE);
         detail.setUnitPrice(amount);
+        detail.setDiscountPercent(BigDecimal.ZERO);
+        detail.setVatAmount(BigDecimal.ZERO);
         detail.setSubtotal(amount);
 
         clientInvoiceDetailRepository.insert(detail);
