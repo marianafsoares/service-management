@@ -14,6 +14,8 @@
         <result property="phone" column="phone"/>
         <result property="mobile" column="mobile"/>
         <result property="email" column="email"/>
+        <result property="subscriptionAmount" column="subscription_amount"/>
+        <result property="fxBilling" column="fx_billing"/>
         <result property="active" column="active"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
@@ -56,9 +58,9 @@
 
     <insert id="insert" parameterType="models.Client" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO client (full_name, city_id, address_id, address_number, tax_condition_id, document_type, document_number,
-                            phone, mobile, email, active, created_at)
+                            phone, mobile, email, subscription_amount, fx_billing, active, created_at)
         VALUES (#{fullName}, #{city.id}, #{address.id}, #{addressNumber}, #{taxCondition.id}, #{documentType}, #{documentNumber},
-                #{phone}, #{mobile}, #{email}, #{active}, CURRENT_TIMESTAMP)
+                #{phone}, #{mobile}, #{email}, #{subscriptionAmount}, #{fxBilling}, #{active}, CURRENT_TIMESTAMP)
     </insert>
 
     <update id="update" parameterType="models.Client">
@@ -73,6 +75,8 @@
             phone = #{phone},
             mobile = #{mobile},
             email = #{email},
+            subscription_amount = #{subscriptionAmount},
+            fx_billing = #{fxBilling},
             active = #{active},
             updated_at = CURRENT_TIMESTAMP
         WHERE id = #{id}

@@ -3,6 +3,7 @@ package models;
 
 import java.time.LocalDateTime;
 import utils.DocumentValidator;
+import java.math.BigDecimal;
 
 
 public class Client {
@@ -20,6 +21,9 @@ public class Client {
     private String phone;
     private String mobile;
     private String email;
+
+    private BigDecimal subscriptionAmount;
+    private boolean fxBilling;
 
     private boolean active = true;
     private boolean hasOpenRemits;
@@ -113,6 +117,22 @@ public class Client {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public BigDecimal getSubscriptionAmount() {
+        return subscriptionAmount;
+    }
+
+    public void setSubscriptionAmount(BigDecimal subscriptionAmount) {
+        this.subscriptionAmount = subscriptionAmount;
+    }
+
+    public boolean isFxBilling() {
+        return fxBilling;
+    }
+
+    public void setFxBilling(boolean fxBilling) {
+        this.fxBilling = fxBilling;
     }
 
     public boolean isActive() {

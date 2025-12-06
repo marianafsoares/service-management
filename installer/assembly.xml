@@ -80,7 +80,7 @@
             <includes>
                 <include>installer.md</include>
                 <include>troubleshooting.md</include>
-                <include>mysql_grant_gestion_system.sql</include>
+                <include>mysql_grant_service_management.sql</include>
             </includes>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
