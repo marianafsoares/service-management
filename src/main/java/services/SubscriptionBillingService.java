@@ -15,8 +15,10 @@ import java.util.Objects;
 import java.util.Optional;
 import models.Client;
 import models.ClientInvoice;
+import models.ClientInvoiceDetail;
 import models.receipts.ClientReceipt;
 import repositories.ClientInvoiceRepository;
+import repositories.ClientInvoiceDetailRepository;
 import repositories.ClientReceiptRepository;
 import repositories.ClientRepository;
 import utils.Constants;
@@ -27,13 +29,16 @@ public class SubscriptionBillingService {
 
     private final ClientRepository clientRepository;
     private final ClientInvoiceRepository clientInvoiceRepository;
+    private final ClientInvoiceDetailRepository clientInvoiceDetailRepository;
     private final ClientReceiptRepository clientReceiptRepository;
 
     public SubscriptionBillingService(ClientRepository clientRepository,
                                       ClientInvoiceRepository clientInvoiceRepository,
+                                      ClientInvoiceDetailRepository clientInvoiceDetailRepository,
                                       ClientReceiptRepository clientReceiptRepository) {
         this.clientRepository = clientRepository;
         this.clientInvoiceRepository = clientInvoiceRepository;
+        this.clientInvoiceDetailRepository = clientInvoiceDetailRepository;
         this.clientReceiptRepository = clientReceiptRepository;
     }
 
@@ -120,6 +125,7 @@ public class SubscriptionBillingService {
                 : description.trim());
         invoice.setPaymentMethod("Cuenta corriente");
         clientInvoiceRepository.insert(invoice);
+        persistDetail(invoice, amount, description);
         return invoice;
     }
 
@@ -237,7 +243,7 @@ public class SubscriptionBillingService {
             }
         }
         int posNumeric = parseNumeric(pointOfSale);
-        return String.format(Locale.ROOT, "%04d-%08d", posNumeric, currentMax + 1);
+        return String.format(Locale.ROOT, "%04d-%07d", posNumeric, currentMax + 1);
     }
 
     private boolean matchesInvoice(ClientInvoice invoice, String pointOfSale, String invoiceType) {
@@ -266,12 +272,30 @@ public class SubscriptionBillingService {
         if (digits.isEmpty()) {
             return 0;
         }
-        String suffix = digits.length() > 8 ? digits.substring(digits.length() - 8) : digits;
+        String suffix = digits.length() > 7 ? digits.substring(digits.length() - 7) : digits;
         try {
             return Integer.parseInt(suffix);
         } catch (NumberFormatException ignored) {
             return 0;
         }
+    }
+
+    private void persistDetail(ClientInvoice invoice, BigDecimal amount, String description) {
+        if (invoice == null || invoice.getId() == null) {
+            return;
+        }
+
+        ClientInvoiceDetail detail = new ClientInvoiceDetail();
+        detail.setInvoice(invoice);
+        detail.setArticleDescription(description == null || description.isBlank()
+                ? "Abono mensual del servicio"
+                : description.trim());
+        detail.setQuantity(BigDecimal.ONE);
+        detail.setUnitPrice(amount);
+        detail.setSubtotal(amount);
+
+        clientInvoiceDetailRepository.insert(detail);
+        invoice.setDetails(Collections.singletonList(detail));
     }
 
     private int parseNumeric(String value) {
