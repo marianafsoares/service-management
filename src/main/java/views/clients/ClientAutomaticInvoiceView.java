@@ -15,18 +15,33 @@ import java.util.Locale;
 import javax.swing.JOptionPane;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import mappers.ClientInvoiceDetailMapper;
+import mappers.ClientInvoiceMapper;
 import mappers.ClientMapper;
+import mappers.receipts.ClientReceiptMapper;
+import models.ClientInvoice;
 import models.Client;
 import org.apache.ibatis.session.SqlSession;
 import repositories.ClientRepository;
 import repositories.impl.ClientRepositoryImpl;
+import repositories.ClientInvoiceRepository;
+import repositories.ClientInvoiceDetailRepository;
+import repositories.ClientReceiptRepository;
+import repositories.impl.ClientInvoiceRepositoryImpl;
+import repositories.impl.ClientInvoiceDetailRepositoryImpl;
+import repositories.impl.ClientReceiptRepositoryImpl;
 import services.ClientService;
+import services.EmailService;
+import services.SubscriptionBillingService;
 
 public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
     public static boolean isOpen = false;
     private final ClientController clientController;
+    private final SubscriptionBillingService subscriptionBillingService;
+    private final EmailService emailService;
     private final DecimalFormat currencyFormat;
+    private final String defaultInvoiceType;
 
     public ClientAutomaticInvoiceView() throws SQLException, Exception {
         SqlSession sqlSession = MyBatisConfig.getSqlSessionFactory().openSession(true);
@@ -34,7 +49,18 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         ClientRepository clientRepository = new ClientRepositoryImpl(clientMapper);
         ClientService clientService = new ClientService(clientRepository);
         clientController = new ClientController(clientService);
+        ClientInvoiceMapper clientInvoiceMapper = sqlSession.getMapper(ClientInvoiceMapper.class);
+        ClientInvoiceRepository clientInvoiceRepository = new ClientInvoiceRepositoryImpl(clientInvoiceMapper);
+        ClientInvoiceDetailMapper clientInvoiceDetailMapper = sqlSession.getMapper(ClientInvoiceDetailMapper.class);
+        ClientInvoiceDetailRepository clientInvoiceDetailRepository = new ClientInvoiceDetailRepositoryImpl(
+                clientInvoiceDetailMapper);
+        ClientReceiptMapper clientReceiptMapper = sqlSession.getMapper(ClientReceiptMapper.class);
+        ClientReceiptRepository clientReceiptRepository = new ClientReceiptRepositoryImpl(clientReceiptMapper);
+        subscriptionBillingService = new SubscriptionBillingService(clientRepository, clientInvoiceRepository,
+                clientInvoiceDetailRepository, clientReceiptRepository);
+        emailService = new EmailService();
         currencyFormat = createCurrencyFormat();
+        defaultInvoiceType = AppConfig.get("subscription.invoice.type.default", null);
 
         isOpen = true;
         initComponents();
@@ -185,37 +211,103 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         StringBuilder summary = new StringBuilder();
         int sentCount = 0;
         int missingContact = 0;
+        int manualSend = 0;
+        int skipped = 0;
+        int failedSend = 0;
         for (Client client : clients) {
             BigDecimal amount = resolveAmount(client, defaultAmount);
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                summary.append("No se generó factura para ")
+                        .append(client.getFullName())
+                        .append(" (importe inválido)\n");
+                skipped++;
+                continue;
+            }
+            ClientInvoice invoice = subscriptionBillingService.generateInvoiceForClient(client, LocalDate.now(),
+                    defaultInvoiceType, amount, detail);
+            if (invoice == null) {
+                summary.append("No se generó factura para ")
+                        .append(client.getFullName())
+                        .append(" (importe no válido)\n");
+                skipped++;
+                continue;
+            }
+            if (client.getEmail() != null && !client.getEmail().isBlank()) {
+                boolean sent = sendInvoiceEmail(client, invoice, amount, detail);
+                summary.append("Factura ")
+                        .append(invoice.getInvoiceNumber())
+                        .append(sent ? " enviada a " : " no se pudo enviar a ")
+                        .append(client.getEmail())
+                        .append(" (cliente: ")
+                        .append(client.getFullName())
+                        .append(")\n");
+                if (sent) {
+                    sentCount++;
+                } else {
+                    failedSend++;
+                }
+                continue;
+            }
+
             String target = resolveContact(client);
             if (target == null) {
-                summary.append("No se pudo enviar a ")
+                summary.append("Factura ")
+                        .append(invoice.getInvoiceNumber())
+                        .append(" generada para ")
                         .append(client.getFullName())
-                        .append(" (sin teléfono/email)\n");
+                        .append(" pero falta teléfono/email para enviarla\n");
                 missingContact++;
                 continue;
             }
 
-            summary.append("Enviado a ")
+            summary.append("Factura ")
+                    .append(invoice.getInvoiceNumber())
+                    .append(" generada para ")
                     .append(client.getFullName())
-                    .append(" vía ")
+                    .append(" - enviar vía ")
                     .append(target)
-                    .append(" - ")
-                    .append(detail)
                     .append(" ($")
                     .append(currencyFormat.format(amount))
                     .append(")\n");
-            sentCount++;
+            manualSend++;
         }
 
         jTextAreaSummary.setText(summary.toString());
 
         String message = "Se procesó la facturación automática.";
-        message += "\nEnvíos realizados: " + sentCount;
+        int totalCreated = sentCount + missingContact + manualSend + failedSend;
+        message += "\nFacturas creadas: " + totalCreated;
+        message += "\nEnviadas por mail: " + sentCount;
         if (missingContact > 0) {
             message += "\nClientes sin datos de contacto: " + missingContact;
         }
+        if (manualSend > 0) {
+            message += "\nPendientes de enviar por WhatsApp/teléfono: " + manualSend;
+        }
+        if (failedSend > 0) {
+            message += "\nEnvios fallidos: " + failedSend;
+        }
+        if (skipped > 0) {
+            message += "\nSaltadas por importe inválido: " + skipped;
+        }
         JOptionPane.showMessageDialog(this, message, "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private boolean sendInvoiceEmail(Client client, ClientInvoice invoice, BigDecimal amount, String detail) {
+        String subject = "Factura " + invoice.getInvoiceNumber();
+        String body = new StringBuilder()
+                .append("Hola ").append(client.getFullName()).append(",\n\n")
+                .append("Te enviamos la factura generada el ")
+                .append(invoice.getInvoiceDate() != null
+                        ? DateTimeFormatter.ofPattern("dd/MM/yyyy").format(invoice.getInvoiceDate())
+                        : "hoy")
+                .append(".\n")
+                .append("Detalle: ").append(detail).append("\n")
+                .append("Total: $").append(currencyFormat.format(amount)).append("\n\n")
+                .append("Gracias.\n")
+                .append(AppConfig.get("company.name", ""))
+                .toString();
+        return emailService.sendEmail(client.getEmail(), subject, body);
     }
 
     private BigDecimal parseAmount() {
