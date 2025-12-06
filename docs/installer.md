@@ -30,7 +30,7 @@ Si preferís realizar cada etapa manualmente, seguí leyendo desde la sección s
      - `app/scripts/flyway-migrate.bat` ejecuta las migraciones usando el mismo classpath que la aplicación.
      - `installer/` incluye las configuraciones base de Launch4j e Inno Setup.
      - `installer/assets/` es donde debes colocar `bits-and-bytes.ico` antes de compilar.
-     - `docs/` incorpora esta guía y el script `mysql_grant_gestion_system.sql`.
+     - `docs/` incorpora esta guía y el script `mysql_grant_service_management.sql`.
 
 > **Nota:** Si querés empaquetar un Java embebido, copiá tu runtime una sola vez dentro de `installer/windows/runtime/` (o apunta `BUNDLED_JRE_SOURCE` a una carpeta externa que contenga `bin/javaw.exe`). El script lo sincroniza en cada ejecución con `target/gestion-1.0.0/app/jre`, por lo que no se pierde aunque se limpie `target/`. Incluso si preferís pegar el runtime directamente en `target/gestion-1.0.0/app/jre` antes de lanzar el script, éste lo detecta, lo guarda en `installer/windows/runtime/` automáticamente y recién después limpia `target/`.
 
@@ -68,7 +68,7 @@ El script:
 - Copia `gestion.exe`, la carpeta `app/`, las configuraciones (`config/`), la documentación y cualquier JRE que hayas colocado en `target/gestion-1.0.0/app/jre`.
 - Crea la carpeta `logs/` en el directorio de instalación.
 - Opcionalmente ejecuta `app/scripts/flyway-migrate.bat` al finalizar (el usuario lo selecciona en el wizard).
-- Copia la documentación, incluido `docs/mysql_grant_gestion_system.sql` para asignar permisos a la base.
+- Copia la documentación, incluido `docs/mysql_grant_service_management.sql` para asignar permisos a la base.
 - Agrega accesos directos al menú inicio y, opcionalmente, al escritorio.
 - Añade los accesos directos **"Abrir logs de errores"** y **"Diagnostico (consola)"** para facilitar el soporte.
 

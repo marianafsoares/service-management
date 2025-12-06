@@ -28,7 +28,7 @@ Esta guia resume los pasos recomendados cuando la aplicacion no inicia o muestra
 
 1. Editá `config/app.properties` y validá los valores `db.url`, `db.user` y `db.pass`.
 2. Si el servidor requiere `allowPublicKeyRetrieval=true`, no hace falta agregarlo manualmente: la aplicacion lo agrega automaticamente.
-3. Asegurate de que el usuario MySQL tenga permisos de `CREATE DATABASE`, `ALTER`, `INSERT`, `UPDATE` y `DELETE` sobre el esquema configurado. El script `docs/mysql_grant_gestion_system.sql` contiene un ejemplo de permisos.
+3. Asegurate de que el usuario MySQL tenga permisos de `CREATE DATABASE`, `ALTER`, `INSERT`, `UPDATE` y `DELETE` sobre el esquema configurado. El script `docs/mysql_grant_service_management.sql` contiene un ejemplo de permisos.
 
 ## 5. Probar las migraciones manualmente
 
