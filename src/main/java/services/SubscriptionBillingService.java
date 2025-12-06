@@ -147,12 +147,12 @@ public class SubscriptionBillingService {
 
                 if (creditNote || amount.compareTo(BigDecimal.ZERO) < 0) {
                     lines.add(AccountStatementLine.invoiceCredit(invoice.getInvoiceDate(), absoluteAmount,
-                            invoice.getInvoiceNumber(), invoice.getInvoiceType()));
+                            formatInvoiceDisplay(invoice), invoice.getInvoiceType()));
                     continue;
                 }
 
                 lines.add(AccountStatementLine.invoice(invoice.getInvoiceDate(), absoluteAmount,
-                        invoice.getInvoiceNumber(), invoice.getInvoiceType()));
+                        formatInvoiceDisplay(invoice), invoice.getInvoiceType()));
             }
         }
 
@@ -242,8 +242,7 @@ public class SubscriptionBillingService {
                 }
             }
         }
-        int posNumeric = parseNumeric(pointOfSale);
-        return String.format(Locale.ROOT, "%04d-%08d", posNumeric, currentMax + 1);
+        return String.valueOf(currentMax + 1);
     }
 
     private boolean matchesInvoice(ClientInvoice invoice, String pointOfSale, String invoiceType) {
@@ -301,19 +300,30 @@ public class SubscriptionBillingService {
         invoice.setDetails(Collections.singletonList(detail));
     }
 
-    private int parseNumeric(String value) {
+    private String formatInvoiceDisplay(ClientInvoice invoice) {
+        if (invoice == null) {
+            return "";
+        }
+        String posDigits = sanitizeDigits(invoice.getPointOfSale());
+        String numberDigits = sanitizeDigits(invoice.getInvoiceNumber());
+        String formattedPos = leftPad(posDigits, 4);
+        String formattedNumber = leftPad(numberDigits, 8);
+        return formattedPos + "-" + formattedNumber;
+    }
+
+    private String sanitizeDigits(String value) {
         if (value == null) {
-            return 0;
+            return "";
         }
-        String digits = value.replaceAll("[^0-9]", "");
-        if (digits.isEmpty()) {
-            return 0;
+        return value.replaceAll("[^0-9]", "");
+    }
+
+    private String leftPad(String value, int size) {
+        String digits = value == null ? "" : value.trim();
+        if (digits.length() > size) {
+            digits = digits.substring(digits.length() - size);
         }
-        try {
-            return Integer.parseInt(digits);
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
+        return String.format(Locale.ROOT, "%" + size + "s", digits).replace(' ', '0');
     }
 
     private String resolveIssuerCuit() {

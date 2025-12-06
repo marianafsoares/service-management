@@ -40,7 +40,8 @@ public class EmailService {
         } catch (AuthenticationFailedException ex) {
             LOGGER.log(Level.WARNING,
                     "No se pudo enviar el mail a " + to
-                            + ". Verificá que la contraseña de la cuenta tenga acceso de aplicación específica.",
+                            + ". Activá la verificación en dos pasos en la cuenta y generá una contraseña de aplicación"
+                            + " para SMTP (Gmail > Seguridad > Contraseñas de aplicaciones).",
                     ex);
             return false;
         } catch (MessagingException ex) {
