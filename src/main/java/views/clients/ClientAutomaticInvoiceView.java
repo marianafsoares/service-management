@@ -1,5 +1,6 @@
 package views.clients;
 
+import configs.AppConfig;
 import configs.MyBatisConfig;
 import controllers.ClientController;
 import java.awt.event.KeyEvent;
@@ -7,6 +8,8 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import javax.swing.JOptionPane;
@@ -35,6 +38,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
         isOpen = true;
         initComponents();
+        setDefaultValues();
         addInternalFrameListener(new InternalFrameAdapter() {
             @Override
             public void internalFrameClosed(InternalFrameEvent e) {
@@ -67,7 +71,6 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         jButtonClose = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTextAreaSummary = new javax.swing.JTextArea();
-        jLabel3 = new javax.swing.JLabel();
 
         setClosable(true);
         setIconifiable(true);
@@ -108,7 +111,6 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         jFormattedTextFieldAmount.setBounds(210, 65, 120, 30);
 
         jButtonSend.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
-        jButtonSend.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/facturacion.png"))); // NOI18N
         jButtonSend.setText("Enviar facturación");
         jButtonSend.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -119,7 +121,6 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         jButtonSend.setBounds(30, 120, 200, 35);
 
         jButtonClose.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
-        jButtonClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/volver.png"))); // NOI18N
         jButtonClose.setText("Cerrar");
         jButtonClose.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -138,11 +139,6 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
         getContentPane().add(jScrollPane1);
         jScrollPane1.setBounds(30, 180, 440, 160);
-
-        jLabel3.setFont(new java.awt.Font("Calibri", 0, 12)); // NOI18N
-        jLabel3.setText("Si el cliente tiene un monto personalizado, se usará sobre el valor por defecto.");
-        getContentPane().add(jLabel3);
-        jLabel3.setBounds(30, 95, 430, 16);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -255,13 +251,37 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         return null;
     }
 
+    private void setDefaultValues() {
+        jTextFieldDetail.setText(buildDefaultDetail());
+        BigDecimal defaultAmount = resolveDefaultAmount();
+        if (defaultAmount.compareTo(BigDecimal.ZERO) > 0) {
+            jFormattedTextFieldAmount.setValue(defaultAmount);
+        }
+    }
+
+    private String buildDefaultDetail() {
+        LocalDate now = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("LLLL yyyy", new Locale("es", "ES"));
+        String formatted = formatter.format(now);
+        String capitalized = formatted.substring(0, 1).toUpperCase() + formatted.substring(1);
+        return "Abono sistema " + capitalized;
+    }
+
+    private BigDecimal resolveDefaultAmount() {
+        String configured = AppConfig.get("subscription.amount.default", "0");
+        try {
+            return new BigDecimal(configured.trim());
+        } catch (Exception ex) {
+            return BigDecimal.ZERO;
+        }
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonClose;
     private javax.swing.JButton jButtonSend;
     private javax.swing.JFormattedTextField jFormattedTextFieldAmount;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTextArea jTextAreaSummary;
     private javax.swing.JTextField jTextFieldDetail;
