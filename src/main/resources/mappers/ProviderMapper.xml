@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ProviderMapper">
+
+    <resultMap id="ProviderResultMap" type="models.Provider">
+        <id property="id" column="id"/>
+        <result property="name" column="full_name"/>
+        <result property="addressNumber" column="address_number"/>
+        <result property="documentType" column="document_type"/>
+        <result property="documentNumber" column="document_number"/>
+        <result property="phone" column="phone"/>
+        <result property="mobile" column="mobile"/>
+        <result property="email" column="email"/>
+        <result property="website" column="website"/>
+        <result property="notes" column="notes"/>
+        <result property="codePrefix" column="code_prefix"/>
+        <result property="priceAdjustmentFormula" column="price_adjustment_formula"/>
+        <result property="active" column="active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="city" javaType="models.City">
+            <id property="id" column="city_id"/>
+            <result property="name" column="city_name"/>
+        </association>
+        <association property="address" javaType="models.Address">
+            <id property="id" column="address_id"/>
+            <result property="name" column="address_name"/>
+        </association>
+        <association property="taxCondition" javaType="models.TaxCondition">
+            <id property="id" column="tax_condition_id"/>
+            <result property="name" column="condition_name"/>
+        </association>
+    </resultMap>
+
+    <select id="findById" parameterType="int" resultMap="ProviderResultMap">
+        SELECT p.*,
+               c.id AS city_id, c.name AS city_name,
+               a.id AS address_id, a.name AS address_name,
+               t.id AS tax_condition_id, t.description AS condition_name
+        FROM provider p
+        LEFT JOIN city c ON c.id = p.city_id
+        LEFT JOIN address a ON a.id = p.address_id
+        LEFT JOIN tax_condition t ON t.id = p.tax_condition_id
+        WHERE p.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="ProviderResultMap">
+        SELECT p.*,
+               c.id AS city_id, c.name AS city_name,
+               a.id AS address_id, a.name AS address_name,
+               t.id AS tax_condition_id, t.description AS condition_name
+        FROM provider p
+        LEFT JOIN city c ON c.id = p.city_id
+        LEFT JOIN address a ON a.id = p.address_id
+        LEFT JOIN tax_condition t ON t.id = p.tax_condition_id
+    </select>
+
+    <insert id="insert" parameterType="models.Provider" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO provider (full_name, city_id, address_id, address_number, tax_condition_id,
+                               document_type, document_number, phone, mobile, email, website, notes, code_prefix, price_adjustment_formula, active, created_at)
+        VALUES (#{name}, #{city.id}, #{address.id}, #{addressNumber}, #{taxCondition.id},
+                #{documentType}, #{documentNumber}, #{phone}, #{mobile}, #{email}, #{website}, #{notes}, #{codePrefix}, #{priceAdjustmentFormula}, #{active}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="update" parameterType="models.Provider">
+        UPDATE provider
+        SET full_name = #{name},
+            city_id = #{city.id},
+            address_id = #{address.id},
+            address_number = #{addressNumber},
+            tax_condition_id = #{taxCondition.id},
+            document_type = #{documentType},
+            document_number = #{documentNumber},
+            phone = #{phone},
+            mobile = #{mobile},
+            email = #{email},
+            website = #{website},
+            notes = #{notes},
+            code_prefix = #{codePrefix},
+            price_adjustment_formula = #{priceAdjustmentFormula},
+            active = #{active},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM provider WHERE id = #{id}
+    </delete>
+
+</mapper>

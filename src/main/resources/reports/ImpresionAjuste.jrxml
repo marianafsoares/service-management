@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 7.3.1.final using JasperReports Library version 6.8.1-3d4b87119c827be13776e451fb3738062f84a87d  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ImpresionComprobanteCliente" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="98dcb7d1-de24-4a0d-86c3-6339a45ff934">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="tipoComprobante" class="java.io.InputStream">
+		<defaultValueExpression><![CDATA[$P{tipoComprobante}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="numero" class="java.io.InputStream">
+		<defaultValueExpression><![CDATA[$P{numero}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="cliente" class="java.io.InputStream">
+		<defaultValueExpression><![CDATA[$P{cliente}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="total" class="java.io.InputStream">
+		<defaultValueExpression><![CDATA[$P{descripcion}]]></defaultValueExpression>
+	</parameter>
+	<parameter name="descripcion" class="java.io.InputStream">
+		<defaultValueExpression><![CDATA[$P{descripcion}]]></defaultValueExpression>
+	</parameter>
+	<title>
+		<band height="93" splitType="Stretch">
+			<rectangle>
+				<reportElement x="244" y="6" width="54" height="50" uuid="613397ab-541e-4db5-8e84-ae3af615b5d1"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="244" y="6" width="54" height="50" uuid="b1788aa9-51f2-4d75-9ff5-1267dbad48b6"/>
+				<textElement textAlignment="Center">
+					<font size="36" isBold="true"/>
+				</textElement>
+				<text><![CDATA[A]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="327" y="6" width="212" height="20" uuid="9c4772fc-923f-4beb-9944-2af5549f2596"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tipoComprobante}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="327" y="36" width="212" height="20" uuid="5fbd38b4-4964-46fc-bfc4-2474f8c742d5"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{numero}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="50">
+			<textField pattern="">
+				<reportElement x="27" y="15" width="100" height="20" uuid="e712da62-884f-480e-99be-ffbf9ec58c0f"/>
+				<textFieldExpression><![CDATA[$P{cliente}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="77">
+			<textField>
+				<reportElement x="439" y="47" width="100" height="20" uuid="a32d7b91-5381-4818-b5fd-e2f0639a1383"/>
+				<textFieldExpression><![CDATA[$P{total}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="27" y="15" width="400" height="52" uuid="6b4462cc-4b54-4682-978f-cbabcb1bd71e"/>
+				<textFieldExpression><![CDATA[$P{descripcion}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

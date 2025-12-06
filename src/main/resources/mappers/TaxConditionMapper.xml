@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.TaxConditionMapper">
+
+    <resultMap id="TaxConditionResultMap" type="models.TaxCondition">
+        <id property="id" column="id"/>
+        <result property="name" column="description"/>
+        <result property="abbreviation" column="abbreviation"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" parameterType="int" resultMap="TaxConditionResultMap">
+        SELECT * FROM tax_condition WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="TaxConditionResultMap">
+        SELECT * FROM tax_condition
+    </select>
+
+    <insert id="insert" parameterType="models.TaxCondition" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tax_condition (description, abbreviation, created_at)
+        VALUES (#{name}, #{abbreviation}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="update" parameterType="models.TaxCondition">
+        UPDATE tax_condition
+        SET description = #{name},
+            abbreviation = #{abbreviation},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM tax_condition WHERE id = #{id}
+    </delete>
+
+</mapper>

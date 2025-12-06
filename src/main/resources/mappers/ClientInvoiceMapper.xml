@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ClientInvoiceMapper">
+
+    <resultMap id="ClientInvoiceResultMap" type="models.ClientInvoice">
+        <id property="id" column="id"/>
+        <result property="invoiceNumber" column="invoice_number"/>
+        <result property="pointOfSale" column="point_of_sale"/>
+        <result property="issuerCuit" column="issuer_cuit"/>
+        <result property="invoiceType" column="invoice_type"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="invoiceDate" column="invoice_date"/>
+        <result property="subtotal" column="subtotal"/>
+        <result property="discountPercent" column="discount_percent"/>
+        <result property="interestPercent" column="interest_percent"/>
+        <result property="vat21" column="vat_21"/>
+        <result property="vat105" column="vat_105"/>
+        <result property="vat27" column="vat_27"/>
+        <result property="total" column="total"/>
+        <result property="description" column="description"/>
+        <result property="associatedInvoiceNumber" column="associated_invoice_number"/>
+        <result property="cae" column="cae"/>
+        <result property="caeExpirationDate" column="cae_expiration_date"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="client" javaType="models.Client">
+            <id property="id" column="client_id"/>
+        </association>
+        <association property="category" javaType="models.InvoiceCategory">
+            <id property="id" column="category_id"/>
+            <result property="description" column="category_description"/>
+        </association>
+    </resultMap>
+
+    <select id="findById" resultMap="ClientInvoiceResultMap" parameterType="int">
+        SELECT ci.*, ic.description AS category_description
+        FROM client_invoice ci
+        LEFT JOIN invoice_category ic ON ic.id = ci.category_id
+        WHERE ci.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="ClientInvoiceResultMap">
+        SELECT ci.*, ic.description AS category_description
+        FROM client_invoice ci
+        LEFT JOIN invoice_category ic ON ic.id = ci.category_id
+    </select>
+
+    <select id="findByClientId" resultMap="ClientInvoiceResultMap" parameterType="int">
+        SELECT ci.*, ic.description AS category_description
+        FROM client_invoice ci
+        LEFT JOIN invoice_category ic ON ic.id = ci.category_id
+        WHERE ci.client_id = #{clientId}
+    </select>
+
+    <select id="findByPointOfSaleAndNumber" resultMap="ClientInvoiceResultMap">
+        SELECT ci.*, ic.description AS category_description
+        FROM client_invoice ci
+        LEFT JOIN invoice_category ic ON ic.id = ci.category_id
+        WHERE ci.point_of_sale = #{pointOfSale}
+          AND ci.invoice_number = #{invoiceNumber}
+        <if test="invoiceType != null and invoiceType != ''">
+          AND ci.invoice_type = #{invoiceType}
+        </if>
+        ORDER BY ci.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findByPointOfSaleAndNumberSuffix" resultMap="ClientInvoiceResultMap">
+        SELECT ci.*
+        FROM client_invoice ci
+        WHERE 1 = 1
+        <trim prefix="AND (" suffix=")" prefixOverrides="OR">
+            <if test="pointOfSale != null and pointOfSale != ''">
+                ci.point_of_sale = #{pointOfSale}
+            </if>
+            <if test="pointOfSaleSuffix != null and pointOfSaleSuffix != ''">
+                OR ci.point_of_sale LIKE CONCAT('%', #{pointOfSaleSuffix})
+            </if>
+        </trim>
+          AND ci.invoice_number LIKE CONCAT('%', #{numberSuffix})
+        <if test="invoiceType != null and invoiceType != ''">
+          AND ci.invoice_type = #{invoiceType}
+        </if>
+        <if test="clientId != null">
+          AND ci.client_id = #{clientId}
+        </if>
+        ORDER BY ci.id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="models.ClientInvoice" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_invoice (
+            invoice_number, point_of_sale, issuer_cuit, client_id,
+            category_id,
+            invoice_type, payment_method, invoice_date,
+            subtotal, discount_percent, interest_percent,
+            vat_21, vat_105, vat_27, total,
+            description, associated_invoice_number, cae, cae_expiration_date, created_at
+        ) VALUES (
+            #{invoiceNumber}, #{pointOfSale}, #{issuerCuit}, #{client.id},
+            #{categoryId,jdbcType=INTEGER},
+            #{invoiceType}, #{paymentMethod}, #{invoiceDate},
+            #{subtotal}, #{discountPercent}, #{interestPercent},
+            #{vat21}, #{vat105}, #{vat27}, #{total},
+            #{description}, #{associatedInvoiceNumber}, #{cae}, #{caeExpirationDate}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="update" parameterType="models.ClientInvoice">
+        UPDATE client_invoice SET
+            invoice_number = #{invoiceNumber},
+            point_of_sale = #{pointOfSale},
+            issuer_cuit = #{issuerCuit},
+            client_id = #{client.id},
+            category_id = #{categoryId,jdbcType=INTEGER},
+            invoice_type = #{invoiceType},
+            payment_method = #{paymentMethod},
+            invoice_date = #{invoiceDate},
+            subtotal = #{subtotal},
+            discount_percent = #{discountPercent},
+            interest_percent = #{interestPercent},
+            vat_21 = #{vat21},
+            vat_105 = #{vat105},
+            vat_27 = #{vat27},
+            total = #{total},
+            description = #{description},
+            associated_invoice_number = #{associatedInvoiceNumber},
+            cae = #{cae},
+            cae_expiration_date = #{caeExpirationDate},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM client_invoice WHERE id = #{id}
+    </delete>
+
+</mapper>

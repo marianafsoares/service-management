@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.receipts.ReceiptTransferMapper">
+
+    <resultMap id="ReceiptTransferResultMap" type="models.receipts.ReceiptTransfer">
+        <id property="id" column="id"/>
+        <result property="receiptId" column="receipt_id"/>
+        <result property="receiptType" column="receipt_type"/>
+        <result property="originAccount" column="origin_account"/>
+        <result property="destinationAccount" column="destination_account"/>
+        <result property="originBankId" column="origin_bank_id"/>
+        <result property="destinationBankId" column="destination_bank_id"/>
+        <result property="originBankName" column="origin_bank_name"/>
+        <result property="destinationBankName" column="destination_bank_name"/>
+        <result property="reference" column="reference"/>
+        <result property="amount" column="amount"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByReceiptIdAndType" resultMap="ReceiptTransferResultMap">
+        SELECT rt.*, ob.name AS origin_bank_name, db.name AS destination_bank_name
+        FROM receipt_transfer rt
+        LEFT JOIN bank ob ON rt.origin_bank_id = ob.id
+        LEFT JOIN bank db ON rt.destination_bank_id = db.id
+        WHERE rt.receipt_id = #{receiptId} AND rt.receipt_type = #{receiptType}
+        ORDER BY rt.id
+    </select>
+
+    <select id="findByReceiptIdAndTypes" resultMap="ReceiptTransferResultMap">
+        SELECT rt.*, ob.name AS origin_bank_name, db.name AS destination_bank_name
+        FROM receipt_transfer rt
+        LEFT JOIN bank ob ON rt.origin_bank_id = ob.id
+        LEFT JOIN bank db ON rt.destination_bank_id = db.id
+        WHERE rt.receipt_id = #{receiptId}
+        <if test="receiptTypes != null and receiptTypes.size() > 0">
+            AND rt.receipt_type IN
+            <foreach item="type" collection="receiptTypes" open="(" separator="," close=")">
+                #{type}
+            </foreach>
+        </if>
+        ORDER BY rt.id
+    </select>
+
+    <insert id="insert" parameterType="models.receipts.ReceiptTransfer" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO receipt_transfer (
+            receipt_id, receipt_type, origin_account, origin_bank_id,
+            destination_account, destination_bank_id, reference, amount, created_at
+        ) VALUES (
+            #{receiptId}, #{receiptType}, #{originAccount}, #{originBankId},
+            #{destinationAccount}, #{destinationBankId}, #{reference}, #{amount}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteByReceiptId" parameterType="int">
+        DELETE FROM receipt_transfer WHERE receipt_id = #{receiptId}
+    </delete>
+
+</mapper>

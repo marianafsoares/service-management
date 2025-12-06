@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.receipts.ClientReceiptMapper">
+
+    <resultMap id="ClientReceiptResultMap" type="models.receipts.ClientReceipt">
+        <id property="id" column="id"/>
+        <result property="receiptNumber" column="receipt_number"/>
+        <result property="pointOfSale" column="point_of_sale"/>
+        <result property="issuerCuit" column="issuer_cuit"/>
+        <result property="receiptDate" column="receipt_date"/>
+        <result property="total" column="total"/>
+        <result property="notes" column="notes"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="client" javaType="models.Client">
+            <id property="id" column="client_id"/>
+        </association>
+    </resultMap>
+
+    <select id="findById" resultMap="ClientReceiptResultMap" parameterType="int">
+        SELECT * FROM client_receipt WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="ClientReceiptResultMap">
+        SELECT * FROM client_receipt
+    </select>
+
+    <select id="findByClientId" resultMap="ClientReceiptResultMap" parameterType="int">
+        SELECT * FROM client_receipt WHERE client_id = #{clientId} ORDER BY receipt_date DESC
+    </select>
+
+    <insert id="insert" parameterType="models.receipts.ClientReceipt" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_receipt (
+            receipt_number, point_of_sale, issuer_cuit, client_id,
+            receipt_date, total, notes, created_at
+        ) VALUES (
+            #{receiptNumber}, #{pointOfSale}, #{issuerCuit}, #{client.id},
+            #{receiptDate}, #{total}, #{notes}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="update" parameterType="models.receipts.ClientReceipt">
+        UPDATE client_receipt
+        SET receipt_number = #{receiptNumber},
+            point_of_sale = #{pointOfSale},
+            issuer_cuit = #{issuerCuit},
+            client_id = #{client.id},
+            receipt_date = #{receiptDate},
+            total = #{total},
+            notes = #{notes},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM client_receipt WHERE id = #{id}
+    </delete>
+
+</mapper>

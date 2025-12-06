@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ClientInvoiceDetailMapper">
+
+    <resultMap id="ClientInvoiceDetailResultMap" type="models.ClientInvoiceDetail">
+        <id property="id" column="id"/>
+        <result property="articleCode" column="article_code"/>
+        <result property="articleDescription" column="article_description"/>
+        <result property="quantity" column="quantity"/>
+        <result property="unitPrice" column="unit_price"/>
+        <result property="discountPercent" column="discount_percent"/>
+        <result property="vatAmount" column="vat_amount"/>
+        <result property="subtotal" column="subtotal"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="invoice" javaType="models.ClientInvoice">
+            <id property="id" column="invoice_id"/>
+        </association>
+    </resultMap>
+
+    <select id="findByInvoiceId" resultMap="ClientInvoiceDetailResultMap" parameterType="int">
+        SELECT * FROM client_invoice_detail WHERE invoice_id = #{invoiceId}
+    </select>
+
+    <insert id="insert" parameterType="models.ClientInvoiceDetail" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_invoice_detail (
+            invoice_id, article_code, article_description,
+            quantity, unit_price, discount_percent, vat_amount, subtotal, created_at
+        ) VALUES (
+            #{invoice.id}, #{articleCode}, #{articleDescription},
+            #{quantity}, #{unitPrice}, #{discountPercent}, #{vatAmount}, #{subtotal}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteByInvoiceId" parameterType="int">
+        DELETE FROM client_invoice_detail WHERE invoice_id = #{invoiceId}
+    </delete>
+
+</mapper>

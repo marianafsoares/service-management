@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+    <dontWrapJar>false</dontWrapJar>
+    <headerType>gui</headerType>
+    <jar>app\gestion.jar</jar>
+    <outfile>BitsAndBytes.exe</outfile>
+    <errTitle>Bits&amp;Bytes</errTitle>
+    <icon>installer\assets\bits-and-bytes.ico</icon>
+    <chdir>.</chdir>
+    <priority>normal</priority>
+    <downloadUrl>https://adoptium.net/</downloadUrl>
+    <supportUrl>https://github.com/</supportUrl>
+    <stayAlive>true</stayAlive>
+    <restartOnCrash>false</restartOnCrash>
+    <classPath>
+        <mainClass>Main</mainClass>
+        <cp>app\gestion.jar</cp>
+        <cp>app\lib\*</cp>
+    </classPath>
+    <jre>
+        <path>app\jre</path>
+        <bundledJre64Bit>true</bundledJre64Bit>
+        <runtimeBits>64</runtimeBits>
+        <minVersion>21</minVersion>
+        <jdkPreference>preferJre</jdkPreference>
+    </jre>
+</launch4jConfig>

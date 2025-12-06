@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.receipts.ReceiptChequeMapper">
+
+    <resultMap id="ReceiptChequeResultMap" type="models.receipts.ReceiptCheque">
+        <id property="id" column="id"/>
+        <result property="receiptId" column="receipt_id"/>
+        <result property="receiptType" column="receipt_type"/>
+        <result property="checkNumber" column="check_number"/>
+        <result property="dueDate" column="due_date"/>
+        <result property="amount" column="amount"/>
+        <result property="holderName" column="holder_name"/>
+        <result property="bankId" column="bank_id"/>
+        <result property="bankName" column="bank_name"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByReceiptIdAndType" resultMap="ReceiptChequeResultMap">
+        SELECT rc.*, b.name AS bank_name
+        FROM receipt_cheque rc
+        LEFT JOIN bank b ON rc.bank_id = b.id
+        WHERE rc.receipt_id = #{receiptId} AND rc.receipt_type = #{receiptType}
+        ORDER BY rc.id
+    </select>
+
+    <select id="findByReceiptIdAndTypes" resultMap="ReceiptChequeResultMap">
+        SELECT rc.*, b.name AS bank_name
+        FROM receipt_cheque rc
+        LEFT JOIN bank b ON rc.bank_id = b.id
+        WHERE rc.receipt_id = #{receiptId}
+        <if test="receiptTypes != null and receiptTypes.size() > 0">
+            AND rc.receipt_type IN
+            <foreach item="type" collection="receiptTypes" open="(" separator="," close=")">
+                #{type}
+            </foreach>
+        </if>
+        ORDER BY rc.id
+    </select>
+
+    <select id="findByNumberAndType" resultMap="ReceiptChequeResultMap">
+        SELECT rc.*, b.name AS bank_name
+        FROM receipt_cheque rc
+        LEFT JOIN bank b ON rc.bank_id = b.id
+        WHERE rc.check_number = #{checkNumber} AND rc.receipt_type = #{receiptType}
+    </select>
+
+    <insert id="insert" parameterType="models.receipts.ReceiptCheque" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO receipt_cheque (
+            receipt_id, receipt_type, check_number, due_date,
+            amount, holder_name, bank_id, created_at
+        ) VALUES (
+            #{receiptId}, #{receiptType}, #{checkNumber}, #{dueDate},
+            #{amount}, #{holderName}, #{bankId}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteByReceiptId" parameterType="int">
+        DELETE FROM receipt_cheque WHERE receipt_id = #{receiptId}
+    </delete>
+
+</mapper>

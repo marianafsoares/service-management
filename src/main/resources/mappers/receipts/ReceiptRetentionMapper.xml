@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.receipts.ReceiptRetentionMapper">
+
+    <resultMap id="ReceiptRetentionResultMap" type="models.receipts.ReceiptRetention">
+        <id property="id" column="id"/>
+        <result property="receiptId" column="receipt_id"/>
+        <result property="receiptType" column="receipt_type"/>
+        <result property="description" column="description"/>
+        <result property="amount" column="amount"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByReceiptIdAndType" resultMap="ReceiptRetentionResultMap">
+        SELECT * FROM receipt_retention WHERE receipt_id = #{receiptId} AND receipt_type = #{receiptType}
+    </select>
+
+    <select id="findByReceiptIdAndTypes" resultMap="ReceiptRetentionResultMap">
+        SELECT * FROM receipt_retention
+        WHERE receipt_id = #{receiptId}
+        <if test="receiptTypes != null and receiptTypes.size() > 0">
+            AND receipt_type IN
+            <foreach item="type" collection="receiptTypes" open="(" separator="," close=")">
+                #{type}
+            </foreach>
+        </if>
+    </select>
+
+    <insert id="insert" parameterType="models.receipts.ReceiptRetention" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO receipt_retention (
+            receipt_id, receipt_type, description, amount, created_at
+        ) VALUES (
+            #{receiptId}, #{receiptType}, #{description}, #{amount}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteByReceiptId" parameterType="int">
+        DELETE FROM receipt_retention WHERE receipt_id = #{receiptId}
+    </delete>
+
+</mapper>

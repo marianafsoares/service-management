@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.VatBookMapper">
+
+    <resultMap id="ClientInvoiceVatResultMap" type="models.ClientInvoice">
+        <id property="id" column="id"/>
+        <result property="invoiceNumber" column="invoice_number"/>
+        <result property="pointOfSale" column="point_of_sale"/>
+        <result property="invoiceType" column="invoice_type"/>
+        <result property="invoiceDate" column="invoice_date"/>
+        <result property="vat21" column="vat_21"/>
+        <result property="vat105" column="vat_105"/>
+        <result property="vat27" column="vat_27"/>
+        <result property="total" column="total"/>
+        <association property="client" javaType="models.Client">
+            <id property="id" column="client_id"/>
+            <result property="fullName" column="client_full_name"/>
+            <result property="documentType" column="client_document_type"/>
+            <result property="documentNumber" column="client_document_number"/>
+            <association property="taxCondition" javaType="models.TaxCondition">
+                <id property="id" column="client_tax_condition_id"/>
+                <result property="abbreviation" column="client_tax_condition_abbr"/>
+            </association>
+        </association>
+    </resultMap>
+
+    <resultMap id="ProviderInvoiceVatResultMap" type="models.ProviderInvoice">
+        <id property="id" column="id"/>
+        <result property="invoiceNumber" column="invoice_number"/>
+        <result property="pointOfSale" column="point_of_sale"/>
+        <result property="description" column="description"/>
+        <result property="receiverCuit" column="receiver_cuit"/>
+        <result property="invoiceType" column="invoice_type"/>
+        <result property="invoiceDate" column="invoice_date"/>
+        <result property="subtotal" column="subtotal"/>
+        <result property="vat21" column="vat_21"/>
+        <result property="vat105" column="vat_105"/>
+        <result property="vat27" column="vat_27"/>
+        <result property="vatPerception" column="vat_perception"/>
+        <result property="grossIncomePerception" column="gross_income_perception"/>
+        <result property="incomeTaxPerception" column="income_tax_perception"/>
+        <result property="exemptAmount" column="exempt_amount"/>
+        <result property="stampTax" column="stamp_tax"/>
+        <result property="total" column="total"/>
+        <association property="provider" javaType="models.Provider">
+            <id property="id" column="provider_id"/>
+            <result property="name" column="provider_name"/>
+            <result property="documentType" column="provider_document_type"/>
+            <result property="documentNumber" column="provider_document_number"/>
+            <association property="taxCondition" javaType="models.TaxCondition">
+                <id property="id" column="provider_tax_condition_id"/>
+                <result property="abbreviation" column="provider_tax_condition_abbr"/>
+            </association>
+        </association>
+        <association property="category" javaType="models.InvoiceCategory">
+            <id property="id" column="category_id"/>
+            <result property="description" column="category_description"/>
+        </association>
+    </resultMap>
+
+    <select id="findSalesBetween" parameterType="map" resultMap="ClientInvoiceVatResultMap">
+        SELECT ci.*, c.full_name AS client_full_name, c.document_type AS client_document_type,
+               c.document_number AS client_document_number,
+               tc.id AS client_tax_condition_id, tc.abbreviation AS client_tax_condition_abbr
+        FROM client_invoice ci
+        JOIN client c ON ci.client_id = c.id
+        JOIN tax_condition tc ON c.tax_condition_id = tc.id
+        WHERE ci.invoice_date BETWEEN #{start} AND #{end}
+          AND ci.issuer_cuit = #{issuerCuit}
+          <if test="types != null and types.size() > 0">
+              AND ci.invoice_type IN
+              <foreach collection="types" item="type" open="(" separator="," close=")">
+                  #{type}
+              </foreach>
+          </if>
+        ORDER BY ci.invoice_date
+    </select>
+
+    <select id="findPurchasesBetween" parameterType="map" resultMap="ProviderInvoiceVatResultMap">
+        SELECT pi.*, p.full_name AS provider_name, p.document_type AS provider_document_type,
+               p.document_number AS provider_document_number,
+               tc.id AS provider_tax_condition_id, tc.abbreviation AS provider_tax_condition_abbr,
+               ic.description AS category_description
+        FROM provider_invoice pi
+        JOIN provider p ON pi.provider_id = p.id
+        JOIN tax_condition tc ON p.tax_condition_id = tc.id
+        JOIN invoice_category ic ON ic.id = pi.category_id
+        WHERE pi.invoice_date BETWEEN #{start} AND #{end}
+          AND pi.receiver_cuit = #{issuerCuit}
+          <if test="types != null and types.size() > 0">
+              AND pi.invoice_type IN
+              <foreach collection="types" item="type" open="(" separator="," close=")">
+                  #{type}
+              </foreach>
+          </if>
+        ORDER BY pi.invoice_date
+    </select>
+
+</mapper>

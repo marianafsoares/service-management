@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.InvoiceCategoryMapper">
+
+    <resultMap id="InvoiceCategoryResultMap" type="models.InvoiceCategory">
+        <id property="id" column="id"/>
+        <result property="description" column="description"/>
+        <result property="enabled" column="enabled"/>
+        <result property="type" column="type"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" parameterType="int" resultMap="InvoiceCategoryResultMap">
+        SELECT * FROM invoice_category WHERE id = #{id}
+    </select>
+
+    <select id="findByDescriptionAndType" resultMap="InvoiceCategoryResultMap">
+        SELECT * FROM invoice_category
+        WHERE UPPER(description) = UPPER(#{description})
+          AND type = #{type}
+    </select>
+
+    <select id="findAll" resultMap="InvoiceCategoryResultMap">
+        SELECT * FROM invoice_category
+    </select>
+
+    <insert id="insert" parameterType="models.InvoiceCategory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO invoice_category (
+            description, enabled, type, created_at
+        ) VALUES (
+            #{description}, #{enabled}, #{type}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="update" parameterType="models.InvoiceCategory">
+        UPDATE invoice_category SET
+            description = #{description},
+            enabled = #{enabled},
+            type = #{type},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM invoice_category WHERE id = #{id}
+    </delete>
+
+</mapper>

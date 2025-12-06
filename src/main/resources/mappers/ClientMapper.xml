@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ClientMapper">
+
+    <resultMap id="ClientResultMap" type="models.Client">
+        <id property="id" column="id"/>
+        <result property="fullName" column="full_name"/>
+        <result property="addressNumber" column="address_number"/>
+        <result property="documentType" column="document_type"/>
+        <result property="documentNumber" column="document_number"/>
+        <result property="phone" column="phone"/>
+        <result property="mobile" column="mobile"/>
+        <result property="email" column="email"/>
+        <result property="active" column="active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="city" javaType="models.City">
+            <id property="id" column="city_id"/>
+            <result property="name" column="city_name"/>
+        </association>
+        <association property="address" javaType="models.Address">
+            <id property="id" column="address_id"/>
+            <result property="name" column="address_name"/>
+        </association>
+        <association property="taxCondition" javaType="models.TaxCondition">
+            <id property="id" column="tax_condition_id"/>
+            <result property="name" column="condition_name"/>
+        </association>
+    </resultMap>
+
+    <select id="findById" parameterType="int" resultMap="ClientResultMap">
+        SELECT c.*,
+               ci.id AS city_id, ci.name AS city_name,
+               a.id AS address_id, a.name AS address_name,
+               tc.id AS tax_condition_id, tc.description AS condition_name
+        FROM client c
+        LEFT JOIN city ci ON ci.id = c.city_id
+        LEFT JOIN address a ON a.id = c.address_id
+        LEFT JOIN tax_condition tc ON tc.id = c.tax_condition_id
+        WHERE c.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="ClientResultMap">
+        SELECT c.*,
+               ci.id AS city_id, ci.name AS city_name,
+               a.id AS address_id, a.name AS address_name,
+               tc.id AS tax_condition_id, tc.description AS condition_name
+        FROM client c
+        LEFT JOIN city ci ON ci.id = c.city_id
+        LEFT JOIN address a ON a.id = c.address_id
+        LEFT JOIN tax_condition tc ON tc.id = c.tax_condition_id
+    </select>
+
+    <insert id="insert" parameterType="models.Client" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client (full_name, city_id, address_id, address_number, tax_condition_id, document_type, document_number,
+                            phone, mobile, email, active, created_at)
+        VALUES (#{fullName}, #{city.id}, #{address.id}, #{addressNumber}, #{taxCondition.id}, #{documentType}, #{documentNumber},
+                #{phone}, #{mobile}, #{email}, #{active}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="update" parameterType="models.Client">
+        UPDATE client
+        SET full_name = #{fullName},
+            city_id = #{city.id},
+            address_id = #{address.id},
+            address_number = #{addressNumber},
+            tax_condition_id = #{taxCondition.id},
+            document_type = #{documentType},
+            document_number = #{documentNumber},
+            phone = #{phone},
+            mobile = #{mobile},
+            email = #{email},
+            active = #{active},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM client WHERE id = #{id}
+    </delete>
+
+</mapper>

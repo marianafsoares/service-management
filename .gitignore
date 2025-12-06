@@ -1,0 +1,10 @@
+target/
+backups/
+*.log
+*.class
+*.iml
+.nbproject/private/
+.idea/
+.DS_Store
+installer/windows/runtime/
+Respaldos/

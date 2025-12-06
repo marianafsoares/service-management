@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ClientRemitDetailMapper">
+
+    <resultMap id="ClientRemitDetailResultMap" type="models.ClientRemitDetail">
+        <id property="id" column="id"/>
+        <result property="productCode" column="product_code"/>
+        <result property="quantity" column="quantity"/>
+        <result property="price" column="price"/>
+        <result property="description" column="description"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="remit" javaType="models.ClientRemit">
+            <id property="id" column="remit_id"/>
+        </association>
+    </resultMap>
+
+    <select id="findByRemitId" resultMap="ClientRemitDetailResultMap" parameterType="int">
+        SELECT * FROM client_remit_detail WHERE remit_id = #{remitId}
+    </select>
+
+    <insert id="insert" parameterType="models.ClientRemitDetail" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_remit_detail (
+            remit_id, product_code, quantity, price, description, created_at
+        ) VALUES (
+            #{remit.id}, #{productCode}, #{quantity}, #{price}, #{description}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteByRemitId" parameterType="int">
+        DELETE FROM client_remit_detail WHERE remit_id = #{remitId}
+    </delete>
+
+</mapper>

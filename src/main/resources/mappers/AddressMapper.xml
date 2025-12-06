@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.AddressMapper">
+
+    <resultMap id="AddressResultMap" type="models.Address">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findById" parameterType="int" resultMap="AddressResultMap">
+        SELECT * FROM address WHERE id = #{id}
+    </select>
+
+    <select id="findByName" parameterType="string" resultMap="AddressResultMap">
+        SELECT * FROM address WHERE UPPER(name) = UPPER(#{name})
+    </select>
+
+    <select id="findAll" resultMap="AddressResultMap">
+        SELECT * FROM address
+    </select>
+
+    <insert id="insert" parameterType="models.Address" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO address (name, created_at)
+        VALUES (#{name}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="update" parameterType="models.Address">
+        UPDATE address
+        SET name = #{name},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM address WHERE id = #{id}
+    </delete>
+
+</mapper>

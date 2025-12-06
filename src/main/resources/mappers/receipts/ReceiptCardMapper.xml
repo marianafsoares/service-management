@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.receipts.ReceiptCardMapper">
+
+    <resultMap id="ReceiptCardResultMap" type="models.receipts.ReceiptCard">
+        <id property="id" column="id"/>
+        <result property="receiptId" column="receipt_id"/>
+        <result property="receiptType" column="receipt_type"/>
+        <result property="cardType" column="card_type"/>
+        <result property="cardId" column="card_id"/>
+        <result property="cardName" column="card_name"/>
+        <result property="lastFourDigits" column="last_four_digits"/>
+        <result property="expirationDate" column="expiration_date"/>
+        <result property="holderName" column="holder_name"/>
+        <result property="amount" column="amount"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByReceiptIdAndType" resultMap="ReceiptCardResultMap">
+        SELECT rc.*, c.name AS card_name
+        FROM receipt_card rc
+        LEFT JOIN card c ON rc.card_id = c.id
+        WHERE rc.receipt_id = #{receiptId} AND rc.receipt_type = #{receiptType}
+        ORDER BY rc.id
+    </select>
+
+    <select id="findByReceiptIdAndTypes" resultMap="ReceiptCardResultMap">
+        SELECT rc.*, c.name AS card_name
+        FROM receipt_card rc
+        LEFT JOIN card c ON rc.card_id = c.id
+        WHERE rc.receipt_id = #{receiptId}
+        <if test="receiptTypes != null and receiptTypes.size() > 0">
+            AND rc.receipt_type IN
+            <foreach item="type" collection="receiptTypes" open="(" separator="," close=")">
+                #{type}
+            </foreach>
+        </if>
+        ORDER BY rc.id
+    </select>
+
+    <insert id="insert" parameterType="models.receipts.ReceiptCard" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO receipt_card (
+            receipt_id, receipt_type, card_type, card_id,
+            last_four_digits, expiration_date, holder_name,
+            amount, created_at
+        ) VALUES (
+            #{receiptId}, #{receiptType}, #{cardType}, #{cardId},
+            #{lastFourDigits}, #{expirationDate}, #{holderName},
+            #{amount}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteByReceiptId" parameterType="int">
+        DELETE FROM receipt_card WHERE receipt_id = #{receiptId}
+    </delete>
+
+</mapper>

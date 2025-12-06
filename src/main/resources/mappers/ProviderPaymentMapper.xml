@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ProviderPaymentMapper">
+
+    <resultMap id="ProviderPaymentResultMap" type="models.ProviderPayment">
+        <id property="id" column="id"/>
+        <result property="receiptNumber" column="receipt_number"/>
+        <result property="pointOfSale" column="point_of_sale"/>
+        <result property="receiverCuit" column="receiver_cuit"/>
+        <result property="providerId" column="provider_id"/>
+        <result property="providerName" column="provider_name"/>
+        <result property="receiptDate" column="receipt_date"/>
+        <result property="total" column="total"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="ProviderPaymentResultMap">
+        SELECT pr.id,
+               pr.receipt_number,
+               pr.point_of_sale,
+               pr.receiver_cuit,
+               pr.provider_id,
+               p.full_name AS provider_name,
+               pr.receipt_date,
+               pr.total
+        FROM provider_receipt pr
+        JOIN provider p ON pr.provider_id = p.id
+    </select>
+
+    <select id="findById" resultMap="ProviderPaymentResultMap" parameterType="int">
+        SELECT pr.id,
+               pr.receipt_number,
+               pr.point_of_sale,
+               pr.receiver_cuit,
+               pr.provider_id,
+               p.full_name AS provider_name,
+               pr.receipt_date,
+               pr.total
+        FROM provider_receipt pr
+        JOIN provider p ON pr.provider_id = p.id
+        WHERE pr.id = #{id}
+    </select>
+
+</mapper>

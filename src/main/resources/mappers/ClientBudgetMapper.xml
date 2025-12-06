@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ClientBudgetMapper">
+
+    <resultMap id="ClientBudgetResultMap" type="models.ClientBudget">
+        <id property="id" column="id"/>
+        <result property="budgetDate" column="budget_date"/>
+        <result property="total" column="total"/>
+        <result property="closed" column="closed"/>
+        <result property="description" column="description"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="client" javaType="models.Client">
+            <id property="id" column="client_id"/>
+        </association>
+    </resultMap>
+
+    <select id="findById" resultMap="ClientBudgetResultMap" parameterType="int">
+        SELECT * FROM client_budget WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="ClientBudgetResultMap">
+        SELECT * FROM client_budget
+    </select>
+
+    <select id="findOpen" resultMap="ClientBudgetResultMap">
+        SELECT * FROM client_budget WHERE COALESCE(closed, 0) = 0
+    </select>
+
+    <select id="findClosed" resultMap="ClientBudgetResultMap">
+        SELECT * FROM client_budget WHERE closed = 1
+    </select>
+
+    <select id="findByClientId" resultMap="ClientBudgetResultMap" parameterType="int">
+        SELECT * FROM client_budget WHERE client_id = #{clientId}
+    </select>
+
+    <insert id="insert" parameterType="models.ClientBudget" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_budget (
+            client_id, budget_date, total, closed, description, created_at
+        ) VALUES (
+            #{client.id}, #{budgetDate}, #{total}, #{closed}, #{description}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="update" parameterType="models.ClientBudget">
+        UPDATE client_budget SET
+            client_id = #{client.id},
+            budget_date = #{budgetDate},
+            total = #{total},
+            closed = #{closed},
+            description = #{description},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM client_budget WHERE id = #{id}
+    </delete>
+
+</mapper>

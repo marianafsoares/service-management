@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ClientBudgetDetailMapper">
+
+    <resultMap id="ClientBudgetDetailResultMap" type="models.ClientBudgetDetail">
+        <id property="id" column="id"/>
+        <result property="productCode" column="product_code"/>
+        <result property="quantity" column="quantity"/>
+        <result property="price" column="price"/>
+        <result property="description" column="description"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="budget" javaType="models.ClientBudget">
+            <id property="id" column="budget_id"/>
+        </association>
+    </resultMap>
+
+    <select id="findByBudgetId" resultMap="ClientBudgetDetailResultMap" parameterType="int">
+        SELECT * FROM client_budget_detail WHERE budget_id = #{budgetId}
+    </select>
+
+    <insert id="insert" parameterType="models.ClientBudgetDetail" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_budget_detail (
+            budget_id, product_code, quantity, price, description, created_at
+        ) VALUES (
+            #{budget.id}, #{productCode}, #{quantity}, #{price}, #{description}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteByBudgetId" parameterType="int">
+        DELETE FROM client_budget_detail WHERE budget_id = #{budgetId}
+    </delete>
+
+</mapper>

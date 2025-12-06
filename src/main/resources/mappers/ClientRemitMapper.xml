@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.ClientRemitMapper">
+
+    <resultMap id="ClientRemitResultMap" type="models.ClientRemit">
+        <id property="id" column="id"/>
+        <result property="remitDate" column="remit_date"/>
+        <result property="total" column="total"/>
+        <result property="closed" column="closed"/>
+        <result property="description" column="description"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="client" javaType="models.Client">
+            <id property="id" column="client_id"/>
+            <result property="fullName" column="client_full_name"/>
+            <result property="addressNumber" column="client_address_number"/>
+            <result property="documentType" column="client_document_type"/>
+            <result property="documentNumber" column="client_document_number"/>
+            <result property="phone" column="client_phone"/>
+            <result property="mobile" column="client_mobile"/>
+            <result property="email" column="client_email"/>
+            <result property="active" column="client_active"/>
+            <result property="createdAt" column="client_created_at"/>
+            <result property="updatedAt" column="client_updated_at"/>
+            <association property="city" javaType="models.City">
+                <id property="id" column="city_id"/>
+                <result property="name" column="city_name"/>
+            </association>
+            <association property="address" javaType="models.Address">
+                <id property="id" column="address_id"/>
+                <result property="name" column="address_name"/>
+            </association>
+            <association property="taxCondition" javaType="models.TaxCondition">
+                <id property="id" column="tax_condition_id"/>
+                <result property="name" column="tax_condition_name"/>
+            </association>
+        </association>
+    </resultMap>
+
+    <sql id="ClientRemitBaseSelect">
+        SELECT r.id,
+               r.client_id AS client_id,
+               r.remit_date,
+               r.total,
+               r.closed,
+               r.description,
+               r.created_at,
+               r.updated_at,
+               c.full_name AS client_full_name,
+               c.address_number AS client_address_number,
+               c.document_type AS client_document_type,
+               c.document_number AS client_document_number,
+               c.phone AS client_phone,
+               c.mobile AS client_mobile,
+               c.email AS client_email,
+               c.active AS client_active,
+               c.created_at AS client_created_at,
+               c.updated_at AS client_updated_at,
+               ci.id AS city_id,
+               ci.name AS city_name,
+               a.id AS address_id,
+               a.name AS address_name,
+               tc.id AS tax_condition_id,
+               tc.description AS tax_condition_name
+        FROM client_remit r
+        LEFT JOIN client c ON c.id = r.client_id
+        LEFT JOIN city ci ON ci.id = c.city_id
+        LEFT JOIN address a ON a.id = c.address_id
+        LEFT JOIN tax_condition tc ON tc.id = c.tax_condition_id
+    </sql>
+
+    <select id="findById" resultMap="ClientRemitResultMap" parameterType="int">
+        <include refid="ClientRemitBaseSelect"/>
+        WHERE r.id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="ClientRemitResultMap">
+        <include refid="ClientRemitBaseSelect"/>
+    </select>
+
+    <select id="findByClientId" resultMap="ClientRemitResultMap" parameterType="int">
+        <include refid="ClientRemitBaseSelect"/>
+        WHERE r.client_id = #{clientId}
+    </select>
+
+    <insert id="insert" parameterType="models.ClientRemit" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO client_remit (
+            client_id, remit_date, total, closed, description, created_at
+        ) VALUES (
+            #{client.id}, #{remitDate}, #{total}, #{closed}, #{description}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="update" parameterType="models.ClientRemit">
+        UPDATE client_remit SET
+            client_id = #{client.id},
+            remit_date = #{remitDate},
+            total = #{total},
+            closed = #{closed},
+            description = #{description},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM client_remit WHERE id = #{id}
+    </delete>
+
+    <select id="findClientIdsWithOpenRemits" resultType="int">
+        SELECT DISTINCT client_id
+        FROM client_remit
+        WHERE closed IS NULL OR closed = FALSE
+    </select>
+
+</mapper>

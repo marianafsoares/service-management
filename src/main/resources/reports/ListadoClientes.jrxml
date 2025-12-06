@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ImpresionComprobanteCliente" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="98dcb7d1-de24-4a0d-86c3-6339a45ff934">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<field name="cliente" class="java.lang.String"/>
+	<field name="saldoFinal" class="java.lang.String"/>
+	<field name="direccion" class="java.lang.String"/>
+	<field name="codigo" class="java.lang.String"/>
+	<title>
+		<band height="29" splitType="Stretch">
+			<staticText>
+				<reportElement x="1" y="0" width="387" height="21" uuid="7cc78fec-2734-4e4f-83be-30bb3d64f86d"/>
+				<textElement>
+					<font fontName="Arial" size="16" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Listado de Clientes]]></text>
+			</staticText>
+			<line>
+				<reportElement x="21" y="28" width="500" height="1" uuid="f1ad9acc-c4cf-434a-87a1-6fcb08b91e9e"/>
+			</line>
+		</band>
+	</title>
+	<detail>
+		<band height="27" splitType="Stretch">
+			<textField>
+				<reportElement x="49" y="6" width="286" height="20" uuid="bf6adc87-9262-4c21-9969-104474af3a64"/>
+				<textElement>
+					<font fontName="Arial" size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{cliente}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="335" y="6" width="125" height="20" uuid="de909242-8518-479c-b162-dcc4145c0039"/>
+				<textElement>
+					<font fontName="Arial" size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{direccion}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="7" y="6" width="42" height="20" uuid="9414bf3b-ecd1-4337-9c61-1cb56d1697cf"/>
+				<textElement>
+					<font fontName="Arial" size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{codigo}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="460" y="5" width="95" height="20" uuid="b8293b2f-3634-4a49-8711-65be039fc589"/>
+				<textFieldExpression><![CDATA[$F{saldoFinal}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="20">
+			<textField>
+				<reportElement x="191" y="0" width="80" height="20" uuid="72a0cd01-a83d-45a8-a271-c6f4819086b2"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["Page "+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="271" y="0" width="40" height="20" uuid="3c2dc6b7-0528-4ccd-ad80-26f2fad4c8a0"/>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>

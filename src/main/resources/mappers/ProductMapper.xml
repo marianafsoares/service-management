@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mappers.ProductMapper">
+
+    <resultMap id="ProductResultMap" type="models.Product">
+        <id property="code" column="code"/>
+        <result property="description" column="description"/>
+        <result property="purchasePrice" column="purchase_price"/>
+        <result property="stockQuantity" column="stock_quantity"/>
+        <result property="profitMargin" column="profit_margin"/>
+        <result property="interestRate" column="interest_rate"/>
+        <result property="vatRate" column="vat_rate"/>
+        <result property="cashPrice" column="cash_price"/>
+        <result property="financedPrice" column="credit_price"/>
+        <result property="notes" column="notes"/>
+        <result property="inPromotion" column="in_promotion"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="brand" javaType="models.Brand" column="brand_id"
+                     select="mappers.BrandMapper.findById"/>
+        <association property="category" javaType="models.Category" column="category_id"
+                     select="mappers.CategoryMapper.findById"/>
+        <association property="subcategory" javaType="models.Subcategory" column="subcategory_id"
+                     select="mappers.SubcategoryMapper.findById"/>
+        <association property="provider" javaType="models.Provider" column="provider_id"
+                     select="mappers.ProviderMapper.findById"/>
+    </resultMap>
+
+    <select id="findByCode" parameterType="string" resultMap="ProductResultMap">
+        SELECT * FROM product WHERE code = #{code}
+    </select>
+
+    <select id="findAll" resultMap="ProductResultMap">
+        SELECT * FROM product
+    </select>
+
+    <select id="findEnabled" resultMap="ProductResultMap">
+        SELECT * FROM product WHERE enabled = 1
+    </select>
+
+      <insert id="insert" parameterType="models.Product">
+        INSERT INTO product (code, description, brand_id, purchase_price, stock_quantity,
+                             profit_margin, interest_rate, vat_rate,
+                             cash_price, credit_price,
+                             category_id, subcategory_id, provider_id, notes, in_promotion, enabled, created_at)
+        VALUES (#{code}, #{description}, #{brand.id}, #{purchasePrice}, #{stockQuantity},
+                #{profitMargin}, #{interestRate}, #{vatRate},
+                #{cashPrice}, #{financedPrice},
+                #{category.id}, #{subcategory.id}, #{provider.id}, #{notes}, #{inPromotion}, #{enabled}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="update" parameterType="models.Product">
+        UPDATE product SET
+            description = #{description},
+            brand_id = #{brand.id},
+            purchase_price = #{purchasePrice},
+            stock_quantity = #{stockQuantity},
+            profit_margin = #{profitMargin},
+            interest_rate = #{interestRate},
+            vat_rate = #{vatRate},
+            cash_price = #{cashPrice},
+            credit_price = #{financedPrice},
+            category_id = #{category.id},
+            subcategory_id = #{subcategory.id},
+            provider_id = #{provider.id},
+            notes = #{notes},
+            in_promotion = #{inPromotion},
+            enabled = #{enabled},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE code = #{code}
+    </update>
+
+    <update id="updateStock">
+        UPDATE product SET
+            stock_quantity = #{stockQuantity},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE code = #{code}
+    </update>
+
+    <delete id="delete" parameterType="string">
+        DELETE FROM product WHERE code = #{code}
+    </delete>
+
+</mapper>

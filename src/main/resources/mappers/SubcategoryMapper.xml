@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.SubcategoryMapper">
+
+    <resultMap id="SubcategoryResultMap" type="models.Subcategory">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="notes" column="notes"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <association property="category" javaType="models.Category">
+            <id property="id" column="category_id"/>
+            <result property="name" column="category_name"/>
+        </association>
+    </resultMap>
+
+    <select id="findById" parameterType="int" resultMap="SubcategoryResultMap">
+        SELECT s.*, c.name AS category_name
+        FROM subcategory s
+        JOIN category c ON s.category_id = c.id
+        WHERE s.id = #{id}
+    </select>
+
+    <select id="findByNameAndCategoryId" resultMap="SubcategoryResultMap">
+        SELECT s.*, c.name AS category_name
+        FROM subcategory s
+        JOIN category c ON s.category_id = c.id
+        WHERE UPPER(s.name) = UPPER(#{name})
+          AND s.category_id = #{categoryId}
+    </select>
+
+    <select id="findAll" resultMap="SubcategoryResultMap">
+        SELECT s.*, c.name AS category_name
+        FROM subcategory s
+        JOIN category c ON s.category_id = c.id
+    </select>
+
+    <insert id="insert" parameterType="models.Subcategory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO subcategory (name, notes, category_id, created_at)
+        VALUES (#{name}, #{notes}, #{category.id}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="update" parameterType="models.Subcategory">
+        UPDATE subcategory
+        SET name = #{name},
+            notes = #{notes},
+            category_id = #{category.id},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM subcategory WHERE id = #{id}
+    </delete>
+
+</mapper>

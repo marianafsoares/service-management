@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.receipts.ProviderReceiptMapper">
+
+    <resultMap id="ProviderReceiptResultMap" type="models.receipts.ProviderReceipt">
+        <id property="id" column="id"/>
+        <result property="receiptNumber" column="receipt_number"/>
+        <result property="pointOfSale" column="point_of_sale"/>
+        <result property="receiverCuit" column="receiver_cuit"/>
+        <result property="receiptDate" column="receipt_date"/>
+        <result property="total" column="total"/>
+        <result property="notes" column="notes"/>
+        <association property="provider" javaType="models.Provider">
+            <id property="id" column="provider_id"/>
+        </association>
+    </resultMap>
+
+    <select id="findById" resultMap="ProviderReceiptResultMap" parameterType="int">
+        SELECT * FROM provider_receipt WHERE id = #{id}
+    </select>
+
+    <select id="findAll" resultMap="ProviderReceiptResultMap">
+        SELECT * FROM provider_receipt
+    </select>
+
+    <select id="findByProviderId" resultMap="ProviderReceiptResultMap" parameterType="int">
+        SELECT *
+        FROM provider_receipt
+        WHERE provider_id = #{providerId}
+        ORDER BY receipt_date DESC
+    </select>
+
+    <insert id="insert" parameterType="models.receipts.ProviderReceipt" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO provider_receipt (
+            receipt_number, point_of_sale, receiver_cuit, provider_id,
+            receipt_date, total, notes, created_at
+        ) VALUES (
+            #{receiptNumber}, #{pointOfSale}, #{receiverCuit}, #{provider.id},
+            #{receiptDate}, #{total}, #{notes}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="update" parameterType="models.receipts.ProviderReceipt">
+        UPDATE provider_receipt
+        SET receipt_number = #{receiptNumber},
+            point_of_sale = #{pointOfSale},
+            receiver_cuit = #{receiverCuit},
+            provider_id = #{provider.id},
+            receipt_date = #{receiptDate},
+            total = #{total},
+            notes = #{notes},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM provider_receipt WHERE id = #{id}
+    </delete>
+
+</mapper>
