@@ -55,6 +55,7 @@ import utils.BackgroundImage;
 
 import views.accountant.PurchasesVatBookView;
 import views.accountant.SalesVatBookView;
+import views.clients.ClientAutomaticInvoiceView;
 import views.clients.ClientBudgetManagementView;
 import views.clients.ClientInvoiceInsertView;
 import views.clients.ClientInvoiceManagementView;
@@ -79,6 +80,7 @@ public class MainView extends JFrame {
     private ProductManagementView productManagementView;
     private ClientManagementView clientManagementView;
     private ClientInvoiceInsertView clientInvoiceInsertView;
+    private ClientAutomaticInvoiceView clientAutomaticInvoiceView;
     private ClientBudgetManagementView clientBudgetManagementView;
     private ClientInvoiceManagementView clientInvoiceManagementView;
     private ClientReceiptManagementView clientReceiptManagementView;
@@ -128,6 +130,8 @@ public class MainView extends JFrame {
         jMenuProductManagement = new javax.swing.JMenu();
         jMenuClientManagement = new javax.swing.JMenu();
         jMenuNewInvoiceClient = new javax.swing.JMenu();
+        jMenuItemManualInvoice = new javax.swing.JMenuItem();
+        jMenuItemAutomaticInvoice = new javax.swing.JMenuItem();
         jMenuAccountant = new javax.swing.JMenu();
         jMenuItemClientReceiptManagement = new javax.swing.JMenuItem();
         jMenuItemSalesVATBook = new javax.swing.JMenuItem();
@@ -211,6 +215,24 @@ public class MainView extends JFrame {
                 jMenuNewInvoiceClientActionPerformed(evt);
             }
         });
+        
+        jMenuItemManualInvoice.setFont(new java.awt.Font("Calibri", 0, 14)); // NOI18N
+        jMenuItemManualInvoice.setText("Factura manual");
+        jMenuItemManualInvoice.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItemManualInvoiceActionPerformed(evt);
+            }
+        });
+        jMenuNewInvoiceClient.add(jMenuItemManualInvoice);
+
+        jMenuItemAutomaticInvoice.setFont(new java.awt.Font("Calibri", 0, 14)); // NOI18N
+        jMenuItemAutomaticInvoice.setText("Facturación automática");
+        jMenuItemAutomaticInvoice.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItemAutomaticInvoiceActionPerformed(evt);
+            }
+        });
+        jMenuNewInvoiceClient.add(jMenuItemAutomaticInvoice);
         jMenuBar1.add(jMenuNewInvoiceClient);
 
         jMenuAccountant.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/Caja.png"))); // NOI18N
@@ -702,16 +724,7 @@ public class MainView extends JFrame {
     }//GEN-LAST:event_jMenuAccountantMouseClicked
 
     private void jMenuNewInvoiceClientMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jMenuNewInvoiceClientMouseClicked
-        if (jMenuNewInvoiceClient.isEnabled() && !ClientInvoiceInsertView.isOpen) {
-            openViewAsync(jMenuNewInvoiceClient,
-                    ClientInvoiceInsertView::new,
-                    view -> {
-                        clientInvoiceInsertView = view;
-                        jDesktopPane1.add(view);
-                        view.setVisible(true);
-                    },
-                    "No se pudo abrir la vista de ventas");
-        }
+        
     }//GEN-LAST:event_jMenuNewInvoiceClientMouseClicked
 
     private void jMenuClientBudgetManagementMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jMenuClientBudgetManagementMouseClicked
@@ -915,6 +928,32 @@ public class MainView extends JFrame {
 
 }//GEN-LAST:event_jMenuPurchasesActionPerformed
 
+    private void jMenuItemManualInvoiceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemManualInvoiceActionPerformed
+        if (jMenuItemManualInvoice.isEnabled() && !ClientInvoiceInsertView.isOpen) {
+            openViewAsync(jMenuItemManualInvoice,
+                    ClientInvoiceInsertView::new,
+                    view -> {
+                        clientInvoiceInsertView = view;
+                        jDesktopPane1.add(view);
+                        view.setVisible(true);
+                    },
+                    "No se pudo abrir la vista de ventas");
+        }
+    }//GEN-LAST:event_jMenuItemManualInvoiceActionPerformed
+
+    private void jMenuItemAutomaticInvoiceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemAutomaticInvoiceActionPerformed
+        if (jMenuItemAutomaticInvoice.isEnabled() && !ClientAutomaticInvoiceView.isOpen) {
+            openViewAsync(jMenuItemAutomaticInvoice,
+                    ClientAutomaticInvoiceView::new,
+                    view -> {
+                        clientAutomaticInvoiceView = view;
+                        jDesktopPane1.add(view);
+                        view.setVisible(true);
+                    },
+                    "No se pudo abrir la facturación automática");
+        }
+    }//GEN-LAST:event_jMenuItemAutomaticInvoiceActionPerformed
+
     private void jMenuItemSalesVATBookActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItemSalesVATBookActionPerformed
         if (!SalesVatBookView.open && jMenuItemSalesVATBook.isEnabled()) {
             openViewAsync(jMenuItemSalesVATBook,
@@ -1046,12 +1085,14 @@ public class MainView extends JFrame {
     private javax.swing.JMenu jMenuClientManagement;
     private javax.swing.JMenu jMenuExit;
     private javax.swing.JMenuItem jMenuItemAddressManagement;
+    private javax.swing.JMenuItem jMenuItemAutomaticInvoice;
     private javax.swing.JMenuItem jMenuItemBankManagement;
     private javax.swing.JMenuItem jMenuItemBrandManagement;
     private javax.swing.JMenuItem jMenuItemCardManagement;
     private javax.swing.JMenuItem jMenuItemCityManagement;
     private javax.swing.JMenuItem jMenuItemClientReceiptManagement;
     private javax.swing.JMenuItem jMenuItemInvoiceCategoryManagement;
+    private javax.swing.JMenuItem jMenuItemManualInvoice;
     private javax.swing.JMenuItem jMenuItemProductCategoryManagement;
     private javax.swing.JMenuItem jMenuItemProductSubcategoryManagement;
     private javax.swing.JMenuItem jMenuItemProviderInvoiceManagement;

@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
@@ -120,6 +121,16 @@ public class ClientService {
             return BigDecimal.ZERO;
         }
         return calculateBalance(clientId);
+    }
+
+    public List<Client> findActiveClients() {
+        List<Client> clients = clientRepository.findAll();
+        if (clients == null) {
+            return Collections.emptyList();
+        }
+        return clients.stream()
+                .filter(Client::isActive)
+                .collect(Collectors.toList());
     }
 
     private String safe(Object value) {

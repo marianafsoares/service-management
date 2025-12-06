@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import javax.swing.JTable;
 import models.Client;
 import services.ClientService;
+import java.util.List;
 
 public class ClientController {
 
@@ -39,6 +40,10 @@ public class ClientController {
 
     public BigDecimal getBalance(Integer clientId) {
         return clientService.getBalance(clientId);
+    }
+
+    public List<Client> findActiveClients() {
+        return clientService.findActiveClients();
     }
 }
 
