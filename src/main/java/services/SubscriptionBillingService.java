@@ -47,9 +47,16 @@ public class SubscriptionBillingService {
     }
 
     public BigDecimal resolveSubscriptionAmount(Client client) {
+        return resolveSubscriptionAmount(client, null);
+    }
+
+    public BigDecimal resolveSubscriptionAmount(Client client, BigDecimal fallbackAmount) {
         if (client != null && client.getSubscriptionAmount() != null
                 && client.getSubscriptionAmount().compareTo(BigDecimal.ZERO) > 0) {
             return client.getSubscriptionAmount();
+        }
+        if (fallbackAmount != null && fallbackAmount.compareTo(BigDecimal.ZERO) > 0) {
+            return fallbackAmount;
         }
         return resolveDefaultSubscriptionAmount();
     }
@@ -89,7 +96,12 @@ public class SubscriptionBillingService {
     }
 
     public ClientInvoice generateInvoiceForClient(Client client, LocalDate billingDate, String defaultInvoiceType) {
-        BigDecimal amount = resolveSubscriptionAmount(client);
+        return generateInvoiceForClient(client, billingDate, defaultInvoiceType, null, null);
+    }
+
+    public ClientInvoice generateInvoiceForClient(Client client, LocalDate billingDate, String defaultInvoiceType,
+            BigDecimal fallbackAmount, String description) {
+        BigDecimal amount = resolveSubscriptionAmount(client, fallbackAmount);
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return null;
         }
@@ -103,7 +115,9 @@ public class SubscriptionBillingService {
         invoice.setIssuerCuit(resolveIssuerCuit());
         invoice.setSubtotal(amount);
         invoice.setTotal(amount);
-        invoice.setDescription("Abono mensual del servicio");
+        invoice.setDescription(description == null || description.isBlank()
+                ? "Abono mensual del servicio"
+                : description.trim());
         invoice.setPaymentMethod("Cuenta corriente");
         clientInvoiceRepository.insert(invoice);
         return invoice;
