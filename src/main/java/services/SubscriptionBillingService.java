@@ -118,10 +118,20 @@ public class SubscriptionBillingService {
         if (invoices != null) {
             for (ClientInvoice invoice : invoices) {
                 BigDecimal amount = invoice.getTotal();
-                if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) {
                     continue;
                 }
-                lines.add(AccountStatementLine.invoice(invoice.getInvoiceDate(), amount,
+
+                boolean creditNote = isCreditNote(invoice.getInvoiceType());
+                BigDecimal absoluteAmount = amount.abs();
+
+                if (creditNote || amount.compareTo(BigDecimal.ZERO) < 0) {
+                    lines.add(AccountStatementLine.invoiceCredit(invoice.getInvoiceDate(), absoluteAmount,
+                            invoice.getInvoiceNumber(), invoice.getInvoiceType()));
+                    continue;
+                }
+
+                lines.add(AccountStatementLine.invoice(invoice.getInvoiceDate(), absoluteAmount,
                         invoice.getInvoiceNumber(), invoice.getInvoiceType()));
             }
         }
@@ -274,6 +284,21 @@ public class SubscriptionBillingService {
         return parts.length == 0 ? "" : parts[0].trim();
     }
 
+    private boolean isCreditNote(String invoiceType) {
+        String normalized = normalize(invoiceType);
+        if (normalized == null) {
+            return false;
+        }
+        String lowered = normalized.toLowerCase(Locale.ROOT);
+        return lowered.contains("nota de credito")
+                || lowered.startsWith("nc")
+                || lowered.startsWith(Constants.NOTA_CREDITO_A_ABBR.toLowerCase(Locale.ROOT))
+                || lowered.startsWith(Constants.NOTA_CREDITO_B_ABBR.toLowerCase(Locale.ROOT))
+                || lowered.startsWith(Constants.NOTA_CREDITO_C_ABBR.toLowerCase(Locale.ROOT))
+                || lowered.contains("nota de devolucion")
+                || lowered.startsWith(Constants.NOTA_DEVOLUCION_ABBR.toLowerCase(Locale.ROOT));
+    }
+
     public static class AccountStatementLine {
         private LocalDateTime date;
         private BigDecimal debit;
@@ -286,6 +311,14 @@ public class SubscriptionBillingService {
             line.date = date;
             line.debit = amount;
             line.label = (invoiceType != null ? invoiceType + " " : "Factura ") + Objects.toString(invoiceNumber, "").trim();
+            return line;
+        }
+
+        public static AccountStatementLine invoiceCredit(LocalDateTime date, BigDecimal amount, String invoiceNumber, String invoiceType) {
+            AccountStatementLine line = new AccountStatementLine();
+            line.date = date;
+            line.credit = amount;
+            line.label = (invoiceType != null ? invoiceType + " " : "NC ") + Objects.toString(invoiceNumber, "").trim();
             return line;
         }
 
