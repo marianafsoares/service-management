@@ -79,7 +79,7 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
     private static final int PANEL_X = 540;
     private static final int PANEL_Y = 70;
     private static final int PANEL_WIDTH = 390;
-    private static final int PANEL_HEIGHT = 440;
+    private static final int PANEL_HEIGHT = 500;
     private static final int RETURN_X = 420;
     private static final int RETURN_Y = 570;
     private static final int RETURN_WIDTH = 120;
@@ -269,12 +269,15 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
         jRadioButtonDni = new javax.swing.JRadioButton();
         jComboBoxTaxCondition = new javax.swing.JComboBox();
         jTextFieldDniCuit = new javax.swing.JTextField();
+        jLabel15 = new javax.swing.JLabel();
+        jTextFieldSubscription = new javax.swing.JTextField();
         jButtonSave = new javax.swing.JButton();
         jButtonCancel = new javax.swing.JButton();
         jLabel3 = new javax.swing.JLabel();
         jLabel13 = new javax.swing.JLabel();
         jLabel14 = new javax.swing.JLabel();
         jCheckBoxActive = new javax.swing.JCheckBox();
+        jCheckBoxFxBilling = new javax.swing.JCheckBox();
         jButtonRemit = new javax.swing.JButton();
         jButtonHistory = new javax.swing.JButton();
         jButtonReturn = new javax.swing.JButton();
@@ -463,6 +466,17 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
         jPanel1.add(jTextFieldDniCuit);
         jTextFieldDniCuit.setBounds(160, 200, 190, 20);
 
+        jLabel15.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
+        jLabel15.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel15.setText("Abono");
+        jPanel1.add(jLabel15);
+        jLabel15.setBounds(40, 320, 90, 20);
+
+        jTextFieldSubscription.setEditable(false);
+        jTextFieldSubscription.setFont(new java.awt.Font("Calibri", 0, 11)); // NOI18N
+        jPanel1.add(jTextFieldSubscription);
+        jTextFieldSubscription.setBounds(160, 320, 190, 20);
+
         jButtonSave.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
         jButtonSave.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/ok.png"))); // NOI18N
         jButtonSave.setText("Guardar");
@@ -473,7 +487,7 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
             }
         });
         jPanel1.add(jButtonSave);
-        jButtonSave.setBounds(100, 360, 120, 30);
+        jButtonSave.setBounds(100, 420, 120, 30);
 
         jButtonCancel.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
         jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/cancelar.png"))); // NOI18N
@@ -485,7 +499,7 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
             }
         });
         jPanel1.add(jButtonCancel);
-        jButtonCancel.setBounds(230, 360, 120, 30);
+        jButtonCancel.setBounds(230, 420, 120, 30);
 
         jLabel3.setForeground(new java.awt.Color(255, 0, 0));
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -507,7 +521,11 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
 
         jCheckBoxActive.setText("Activo");
         jPanel1.add(jCheckBoxActive);
-        jCheckBoxActive.setBounds(160, 320, 150, 20);
+        jCheckBoxActive.setBounds(160, 380, 150, 20);
+
+        jCheckBoxFxBilling.setText("Facturar como FX");
+        jPanel1.add(jCheckBoxFxBilling);
+        jCheckBoxFxBilling.setBounds(160, 350, 190, 20);
 
         jScrollPaneForm.setBorder(null);
         jScrollPaneForm.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -894,10 +912,12 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
         jTextFieldPhone.setEditable(true);
         jTextFieldCelPhone.setEditable(true);
         jTextFieldMail.setEditable(true);
+        jTextFieldSubscription.setEditable(true);
 
         jButtonAdd.setSelected(true);
         jButtonModify.setSelected(true);
         jCheckBoxActive.setEnabled(true);
+        jCheckBoxFxBilling.setEnabled(true);
     }
 
     private void disableFields() {
@@ -914,10 +934,12 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
         jTextFieldPhone.setEditable(false);
         jTextFieldCelPhone.setEditable(false);
         jTextFieldMail.setEditable(false);
+        jTextFieldSubscription.setEditable(false);
 
         jButtonAdd.setSelected(false);
         jButtonModify.setSelected(false);
         jCheckBoxActive.setEnabled(false);
+        jCheckBoxFxBilling.setEnabled(false);
     }
 
     private void jButtonModifyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonModifyActionPerformed
@@ -963,6 +985,12 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
                     jTextFieldPhone.setText(currentClient.getPhone());
                     jTextFieldCelPhone.setText(currentClient.getMobile());
                     jTextFieldMail.setText(currentClient.getEmail());
+                    if (currentClient.getSubscriptionAmount() != null) {
+                        jTextFieldSubscription.setText(currentClient.getSubscriptionAmount().toPlainString());
+                    } else {
+                        jTextFieldSubscription.setText("");
+                    }
+                    jCheckBoxFxBilling.setSelected(currentClient.isFxBilling());
                     if ("CUIT".equalsIgnoreCase(currentClient.getDocumentType())) {
                         jRadioButtonCuit.setSelected(true);
                     } else {
@@ -1046,6 +1074,19 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
         currentClient.setPhone(jTextFieldPhone.getText());
         currentClient.setMobile(jTextFieldCelPhone.getText());
         currentClient.setEmail(jTextFieldMail.getText());
+        String subscriptionText = jTextFieldSubscription.getText();
+        if (subscriptionText != null && !subscriptionText.isBlank()) {
+            try {
+                currentClient.setSubscriptionAmount(new BigDecimal(subscriptionText.replace(',', '.')));
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "El abono ingresado no es válido", "Atencion", JOptionPane.WARNING_MESSAGE);
+                jTextFieldSubscription.requestFocus();
+                return;
+            }
+        } else {
+            currentClient.setSubscriptionAmount(null);
+        }
+        currentClient.setFxBilling(jCheckBoxFxBilling.isSelected());
         currentClient.setActive(jCheckBoxActive.isSelected());
 
         List<Address> addresses = addressController.findAll();
@@ -1106,7 +1147,9 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
         jTextFieldPhone.setText("");
         jTextFieldCelPhone.setText("");
         jTextFieldMail.setText("");
+        jTextFieldSubscription.setText("");
         jCheckBoxActive.setSelected(true);
+        jCheckBoxFxBilling.setSelected(false);
 
     }
 
@@ -1259,6 +1302,7 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
@@ -1268,6 +1312,7 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
     private javax.swing.JLabel jLabel9;
     public static javax.swing.JLabel jLabelsaldoDeudor;
     public static javax.swing.JPanel jPanel1;
+    private javax.swing.JCheckBox jCheckBoxFxBilling;
     private javax.swing.JRadioButton jRadioButtonCuit;
     private javax.swing.JRadioButton jRadioButtonDni;
     private javax.swing.JScrollPane jScrollPane1;
@@ -1280,6 +1325,7 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
     private javax.swing.JTextField jTextFieldName;
     private javax.swing.JTextField jTextFieldPhone;
     private javax.swing.JTextField jTextFieldSearch;
+    private javax.swing.JTextField jTextFieldSubscription;
     // End of variables declaration//GEN-END:variables
 
 }
