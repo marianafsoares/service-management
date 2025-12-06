@@ -252,7 +252,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             String target = resolveContact(client);
             if (target == null) {
                 summary.append("Factura ")
-                        .append(invoice.getInvoiceNumber())
+                        .append(formatInvoiceDisplay(invoice))
                         .append(" generada para ")
                         .append(client.getFullName())
                         .append(" pero falta teléfono/email para enviarla\n");
@@ -261,7 +261,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             }
 
             summary.append("Factura ")
-                    .append(invoice.getInvoiceNumber())
+                    .append(formatInvoiceDisplay(invoice))
                     .append(" generada para ")
                     .append(client.getFullName())
                     .append(" - enviar vía ")
@@ -294,7 +294,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
     }
 
     private boolean sendInvoiceEmail(Client client, ClientInvoice invoice, BigDecimal amount, String detail) {
-        String subject = "Factura " + invoice.getInvoiceNumber();
+        String subject = "Factura " + formatInvoiceDisplay(invoice);
         String body = new StringBuilder()
                 .append("Hola ").append(client.getFullName()).append(",\n\n")
                 .append("Te enviamos la factura generada el ")
@@ -308,6 +308,30 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 .append(AppConfig.get("company.name", ""))
                 .toString();
         return emailService.sendEmail(client.getEmail(), subject, body);
+    }
+
+    private String formatInvoiceDisplay(ClientInvoice invoice) {
+        if (invoice == null) {
+            return "";
+        }
+        String posDigits = sanitizeDigits(invoice.getPointOfSale());
+        String numberDigits = sanitizeDigits(invoice.getInvoiceNumber());
+        return leftPad(posDigits, 4) + "-" + leftPad(numberDigits, 8);
+    }
+
+    private String sanitizeDigits(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("[^0-9]", "");
+    }
+
+    private String leftPad(String value, int size) {
+        String digits = value == null ? "" : value.trim();
+        if (digits.length() > size) {
+            digits = digits.substring(digits.length() - size);
+        }
+        return String.format("%" + size + "s", digits).replace(' ', '0');
     }
 
     private BigDecimal parseAmount() {
