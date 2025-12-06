@@ -15,18 +15,28 @@ import java.util.Locale;
 import javax.swing.JOptionPane;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import mappers.ClientInvoiceMapper;
 import mappers.ClientMapper;
+import mappers.receipts.ClientReceiptMapper;
+import models.ClientInvoice;
 import models.Client;
 import org.apache.ibatis.session.SqlSession;
 import repositories.ClientRepository;
 import repositories.impl.ClientRepositoryImpl;
+import repositories.ClientInvoiceRepository;
+import repositories.ClientReceiptRepository;
+import repositories.impl.ClientInvoiceRepositoryImpl;
+import repositories.impl.ClientReceiptRepositoryImpl;
 import services.ClientService;
+import services.SubscriptionBillingService;
 
 public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
     public static boolean isOpen = false;
     private final ClientController clientController;
+    private final SubscriptionBillingService subscriptionBillingService;
     private final DecimalFormat currencyFormat;
+    private final String defaultInvoiceType;
 
     public ClientAutomaticInvoiceView() throws SQLException, Exception {
         SqlSession sqlSession = MyBatisConfig.getSqlSessionFactory().openSession(true);
@@ -34,7 +44,14 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         ClientRepository clientRepository = new ClientRepositoryImpl(clientMapper);
         ClientService clientService = new ClientService(clientRepository);
         clientController = new ClientController(clientService);
+        ClientInvoiceMapper clientInvoiceMapper = sqlSession.getMapper(ClientInvoiceMapper.class);
+        ClientInvoiceRepository clientInvoiceRepository = new ClientInvoiceRepositoryImpl(clientInvoiceMapper);
+        ClientReceiptMapper clientReceiptMapper = sqlSession.getMapper(ClientReceiptMapper.class);
+        ClientReceiptRepository clientReceiptRepository = new ClientReceiptRepositoryImpl(clientReceiptMapper);
+        subscriptionBillingService = new SubscriptionBillingService(clientRepository, clientInvoiceRepository,
+                clientReceiptRepository);
         currencyFormat = createCurrencyFormat();
+        defaultInvoiceType = AppConfig.get("subscription.invoice.type.default", null);
 
         isOpen = true;
         initComponents();
@@ -185,23 +202,42 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         StringBuilder summary = new StringBuilder();
         int sentCount = 0;
         int missingContact = 0;
+        int skipped = 0;
         for (Client client : clients) {
             BigDecimal amount = resolveAmount(client, defaultAmount);
+            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                summary.append("No se generó factura para ")
+                        .append(client.getFullName())
+                        .append(" (importe inválido)\n");
+                skipped++;
+                continue;
+            }
+            ClientInvoice invoice = subscriptionBillingService.generateInvoiceForClient(client, LocalDate.now(),
+                    defaultInvoiceType, amount, detail);
+            if (invoice == null) {
+                summary.append("No se generó factura para ")
+                        .append(client.getFullName())
+                        .append(" (importe no válido)\n");
+                skipped++;
+                continue;
+            }
             String target = resolveContact(client);
             if (target == null) {
-                summary.append("No se pudo enviar a ")
+                summary.append("Factura ")
+                        .append(invoice.getInvoiceNumber())
+                        .append(" generada para ")
                         .append(client.getFullName())
-                        .append(" (sin teléfono/email)\n");
+                        .append(" pero falta teléfono/email para enviarla\n");
                 missingContact++;
                 continue;
             }
 
-            summary.append("Enviado a ")
+            summary.append("Factura ")
+                    .append(invoice.getInvoiceNumber())
+                    .append(" generada para ")
                     .append(client.getFullName())
-                    .append(" vía ")
+                    .append(" - enviar vía ")
                     .append(target)
-                    .append(" - ")
-                    .append(detail)
                     .append(" ($")
                     .append(currencyFormat.format(amount))
                     .append(")\n");
@@ -211,9 +247,13 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         jTextAreaSummary.setText(summary.toString());
 
         String message = "Se procesó la facturación automática.";
-        message += "\nEnvíos realizados: " + sentCount;
+        message += "\nFacturas creadas: " + (sentCount + missingContact);
+        message += "\nListas para enviar: " + sentCount;
         if (missingContact > 0) {
             message += "\nClientes sin datos de contacto: " + missingContact;
+        }
+        if (skipped > 0) {
+            message += "\nSaltadas por importe inválido: " + skipped;
         }
         JOptionPane.showMessageDialog(this, message, "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
     }
