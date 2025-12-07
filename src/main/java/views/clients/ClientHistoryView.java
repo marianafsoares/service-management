@@ -187,7 +187,10 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
             }
         }
 
-        items.sort(Comparator.comparing((HistoryItem i) -> i.date, Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+        Comparator<HistoryItem> comparator = Comparator
+                .comparing((HistoryItem i) -> i.date, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(i -> buildSortableNumber(i.number), Comparator.nullsLast(Comparator.naturalOrder()));
+        items.sort(comparator.reversed());
 
         BigDecimal currentBalance = BigDecimal.ZERO;
         for (int idx = items.size() - 1; idx >= 0; idx--) {
@@ -231,6 +234,13 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
         }
         String digits = value.replaceAll("[^0-9]", "");
         return digits.replaceFirst("^0+", "");
+    }
+
+    private String buildSortableNumber(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("[^0-9]", "");
     }
 
     private String leftPadDigits(String value, int size) {

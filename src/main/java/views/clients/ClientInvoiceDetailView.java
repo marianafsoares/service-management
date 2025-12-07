@@ -411,15 +411,15 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
             Object numberValue = ClientHistoryView.jTable1.getValueAt(row, 2);
             String numberStr = numberValue != null ? numberValue.toString() : "";
             String[] parts = numberStr.split("-");
-            String pointOfSale = parts.length > 0 ? parts[0] : "";
-            String invoiceNumber = parts.length > 1 ? parts[1] : "";
+            String pointOfSale = normalizeDigits(parts.length > 0 ? parts[0] : "");
+            String invoiceNumber = normalizeDigits(parts.length > 1 ? parts[1] : "");
 
             for (ClientInvoice inv : ClientHistoryView.invoices) {
                 if (inv == null) {
                     continue;
                 }
-                String invPos = inv.getPointOfSale() != null ? inv.getPointOfSale().trim() : "";
-                String invNumber = inv.getInvoiceNumber() != null ? inv.getInvoiceNumber().trim() : "";
+                String invPos = normalizeDigits(inv.getPointOfSale());
+                String invNumber = normalizeDigits(inv.getInvoiceNumber());
                 if (pointOfSale.equals(invPos) && invoiceNumber.equals(invNumber)) {
                     return inv;
                 }
@@ -437,6 +437,14 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         }
         String type = InvoiceTypeUtils.toStorageValue(invoice.getInvoiceType());
         return Constants.PRESUPUESTO_ABBR.equalsIgnoreCase(type);
+    }
+
+    private String normalizeDigits(String value) {
+        if (value == null) {
+            return "";
+        }
+        String digits = value.replaceAll("[^0-9]", "");
+        return digits.replaceFirst("^0+(?!$)", "");
     }
 
     private ClientInvoice findAssociatedInvoice(ClientInvoice invoice) {

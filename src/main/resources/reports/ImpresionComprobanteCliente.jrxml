@@ -4,10 +4,12 @@
         <property name="ireport.zoom" value="1.0"/>
         <property name="ireport.x" value="0"/>
         <property name="ireport.y" value="0"/>
+        <parameter name="Logo" class="java.io.InputStream"/>
         <parameter name="CompanyName" class="java.lang.String"/>
         <parameter name="CompanyContactLine1" class="java.lang.String"/>
         <parameter name="CompanyContactLine2" class="java.lang.String"/>
         <parameter name="CompanyContactLine3" class="java.lang.String"/>
+        <parameter name="CompanyContactLine4" class="java.lang.String"/>
         <field name="tipoComprobante" class="java.lang.String"/>
 	<field name="direccion" class="java.lang.String"/>
 	<field name="cliente" class="java.lang.String"/>
@@ -26,69 +28,63 @@
 	<field name="nroCliente" class="java.lang.String"/>
 	<field name="bonificacion" class="java.lang.String"/>
 	<field name="numero" class="java.lang.String"/>
-	<title>
-		<band height="93" splitType="Stretch">
+        <title>
+                <band height="110" splitType="Stretch">
+                        <image>
+                                <reportElement x="7" y="5" width="191" height="80" uuid="577dbc9f-39e4-41cd-beba-48e07e872532"/>
+                                <imageExpression><![CDATA[$P{Logo}]]></imageExpression>
+                        </image>
                         <textField isBlankWhenNull="true">
-                                <reportElement x="7" y="34" width="191" height="20" uuid="577dbc9f-39e4-41cd-beba-48e07e872532"/>
+                                <reportElement x="7" y="87" width="191" height="20" uuid="11e38e50-220d-411b-a838-606c5e017e59"/>
                                 <textElement textAlignment="Center">
+                                        <font fontName="Calibri" size="14" isBold="true"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$P{CompanyName}]]></textFieldExpression>
+                        </textField>
+                        <textField isBlankWhenNull="true">
+                                <reportElement x="215" y="10" width="180" height="18" uuid="60155e85-8e25-4690-823f-9ed6d9c06e0e"/>
+                                <textElement textAlignment="Left">
                                         <font fontName="Calibri" size="13"/>
                                 </textElement>
                                 <textFieldExpression><![CDATA[$P{CompanyContactLine1}]]></textFieldExpression>
                         </textField>
                         <textField isBlankWhenNull="true">
-                                <reportElement x="7" y="1" width="191" height="30" uuid="11e38e50-220d-411b-a838-606c5e017e59"/>
-                                <textElement textAlignment="Center">
-                                        <font fontName="Calibri" size="18" isBold="true"/>
-                                </textElement>
-                                <textFieldExpression><![CDATA[$P{CompanyName}]]></textFieldExpression>
-                        </textField>
-                        <textField isBlankWhenNull="true">
-                                <reportElement x="7" y="57" width="191" height="20" uuid="60155e85-8e25-4690-823f-9ed6d9c06e0e"/>
-                                <textElement textAlignment="Center">
+                                <reportElement x="215" y="32" width="180" height="18" uuid="f1d0a7de-0b1d-4e65-9a25-0d7b5fd21c7a"/>
+                                <textElement textAlignment="Left">
                                         <font fontName="Calibri" size="13"/>
                                 </textElement>
                                 <textFieldExpression><![CDATA[$P{CompanyContactLine2}]]></textFieldExpression>
                         </textField>
                         <textField isBlankWhenNull="true">
-                                <reportElement x="7" y="75" width="191" height="18" uuid="f1d0a7de-0b1d-4e65-9a25-0d7b5fd21c7a"/>
-                                <textElement textAlignment="Center">
+                                <reportElement x="215" y="54" width="180" height="18" uuid="a4f62ddb-ac54-4a99-a026-3b1e8c853fd5"/>
+                                <textElement textAlignment="Left">
                                         <font fontName="Calibri" size="13"/>
                                 </textElement>
                                 <textFieldExpression><![CDATA[$P{CompanyContactLine3}]]></textFieldExpression>
                         </textField>
-			<rectangle>
-				<reportElement x="264" y="10" width="54" height="50" uuid="750a3ade-c672-4460-a192-12df5650576f"/>
-			</rectangle>
-			<staticText>
-				<reportElement x="264" y="10" width="54" height="50" uuid="a4f62ddb-ac54-4a99-a026-3b1e8c853fd5"/>
-				<textElement textAlignment="Center">
-					<font size="36" isBold="true"/>
-				</textElement>
-				<text><![CDATA[X]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="239" y="61" width="102" height="20" uuid="c5df26f3-94ca-4a94-8f6b-f48b8c0ec3f1"/>
-				<textElement textAlignment="Center">
-					<font fontName="Calibri" size="13"/>
-				</textElement>
-				<text><![CDATA[Presupuesto]]></text>
-			</staticText>
-			<textField>
-				<reportElement x="408" y="61" width="127" height="20" uuid="57544028-188a-4be9-84aa-5674ff777330"/>
-				<textElement textAlignment="Center">
-					<font size="14"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{fecha}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="408" y="29" width="127" height="20" uuid="1577496e-fbca-44f3-b9a9-300374c94ee2"/>
-				<textElement textAlignment="Center">
-					<font size="14"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{numero}]]></textFieldExpression>
-			</textField>
-		</band>
-	</title>
+                        <textField isBlankWhenNull="true">
+                                <reportElement x="215" y="76" width="180" height="18" uuid="c5df26f3-94ca-4a94-8f6b-f48b8c0ec3f1"/>
+                                <textElement textAlignment="Left">
+                                        <font fontName="Calibri" size="13"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$P{CompanyContactLine4}]]></textFieldExpression>
+                        </textField>
+                        <textField>
+                                <reportElement x="408" y="61" width="127" height="20" uuid="57544028-188a-4be9-84aa-5674ff777330"/>
+                                <textElement textAlignment="Center">
+                                        <font size="14"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{fecha}]]></textFieldExpression>
+                        </textField>
+                        <textField>
+                                <reportElement x="408" y="29" width="127" height="20" uuid="1577496e-fbca-44f3-b9a9-300374c94ee2"/>
+                                <textElement textAlignment="Center">
+                                        <font size="14"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{numero}]]></textFieldExpression>
+                        </textField>
+                </band>
+        </title>
 	<pageHeader>
 		<band height="157">
 			<rectangle>

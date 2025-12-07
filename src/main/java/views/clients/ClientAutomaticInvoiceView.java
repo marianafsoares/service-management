@@ -1,10 +1,18 @@
 package views.clients;
 
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Font;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
 import configs.AppConfig;
 import configs.MyBatisConfig;
 import controllers.ClientController;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -52,8 +60,6 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         SqlSession sqlSession = MyBatisConfig.getSqlSessionFactory().openSession(true);
         ClientMapper clientMapper = sqlSession.getMapper(ClientMapper.class);
         ClientRepository clientRepository = new ClientRepositoryImpl(clientMapper);
-        ClientService clientService = new ClientService(clientRepository);
-        clientController = new ClientController(clientService);
         ClientInvoiceMapper clientInvoiceMapper = sqlSession.getMapper(ClientInvoiceMapper.class);
         ClientInvoiceRepository clientInvoiceRepository = new ClientInvoiceRepositoryImpl(clientInvoiceMapper);
         ClientInvoiceDetailMapper clientInvoiceDetailMapper = sqlSession.getMapper(ClientInvoiceDetailMapper.class);
@@ -61,6 +67,9 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 clientInvoiceDetailMapper);
         ClientReceiptMapper clientReceiptMapper = sqlSession.getMapper(ClientReceiptMapper.class);
         ClientReceiptRepository clientReceiptRepository = new ClientReceiptRepositoryImpl(clientReceiptMapper);
+        ClientService clientService = new ClientService(clientRepository, clientInvoiceRepository,
+                clientReceiptRepository);
+        clientController = new ClientController(clientService);
         subscriptionBillingService = new SubscriptionBillingService(clientRepository, clientInvoiceRepository,
                 clientInvoiceDetailRepository, clientReceiptRepository);
         emailService = new EmailService();
@@ -109,8 +118,8 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         setMaximizable(true);
         setResizable(true);
         setTitle("Facturación automática");
-        setMinimumSize(new java.awt.Dimension(650, 420));
-        setPreferredSize(new java.awt.Dimension(700, 460));
+        setMinimumSize(new java.awt.Dimension(760, 460));
+        setPreferredSize(new java.awt.Dimension(820, 520));
         getContentPane().setLayout(null);
 
         jLabel1.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
@@ -170,7 +179,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         jScrollPane1.setViewportView(jTextAreaSummary);
 
         getContentPane().add(jScrollPane1);
-        jScrollPane1.setBounds(30, 180, 620, 200);
+        jScrollPane1.setBounds(30, 180, 740, 230);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -334,21 +343,69 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                     .append(".</p>");
         }
 
-        body.append("<p>Datos para el pago:<br/>")
-                .append("Caja Ahorro Pesos Galicia.<br/>Número de cuenta<br/>4006250-2 393-5<br/>CBU<br/>00703930 30004006250255<br/>DNI<br/>32862872<br/>Alias de CBU<br/>MARIANA.SOARES<br/><br/>")
-                .append("Caja Ahorro Pesos Banco Provincia.<br/>Número de Cuenta:<br/>6715-502610/5<br/>CBU:<br/>0140373003671550261059<br/>CBU Alias:<br/>MARIANA.SOARES.P <br/><br/>")
-                .append("Cuenta DNI<br/>32862872</p>")
+        body.append("<p>Adjuntamos los datos para el pago en un PDF separado.</p>")
                 .append("<p>Por favor enviar comprobante al teléfono: 2392519656.</p>")
                 .append("<p>Gracias.<br/>")
                 .append(AppConfig.get("company.name", ""))
                 .append("</p>");
 
         List<File> attachments = new ArrayList<>();
+        File paymentData = buildPaymentDataPdf();
+        if (paymentData != null && paymentData.exists()) {
+            attachments.add(paymentData);
+        }
         if (pdfAttachment != null && pdfAttachment.exists()) {
             attachments.add(pdfAttachment);
         }
 
         return emailService.sendEmail(client.getEmail(), subject, body.toString(), attachments, true);
+    }
+
+    private File buildPaymentDataPdf() {
+        try {
+            File pdfFile = File.createTempFile("datos-pago-", ".pdf");
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, new FileOutputStream(pdfFile));
+
+            document.open();
+            Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
+            Font sectionFont = new Font(Font.HELVETICA, 13, Font.BOLD);
+            Font textFont = new Font(Font.HELVETICA, 12, Font.NORMAL);
+
+            document.add(new Paragraph("Datos para el pago", titleFont));
+            document.add(new Paragraph("", textFont));
+
+            addPaymentSection(document, sectionFont, textFont, "Caja Ahorro Pesos Galicia", new String[]{
+                "Número de cuenta 4006250-2 393-5",
+                "CBU 0070393030004006250255",
+                "DNI 32862872",
+                "Alias de CBU MARIANA.SOARES"
+            });
+
+            addPaymentSection(document, sectionFont, textFont, "Caja Ahorro Pesos Banco Provincia", new String[]{
+                "Número de Cuenta 6715-502610/5",
+                "CBU 0140373003671550261059",
+                "CBU Alias MARIANA.SOARES.P"
+            });
+
+            addPaymentSection(document, sectionFont, textFont, "Cuenta DNI", new String[]{
+                "DNI 32862872"
+            });
+
+            document.close();
+            return pdfFile;
+        } catch (DocumentException | IOException ex) {
+            return null;
+        }
+    }
+
+    private void addPaymentSection(Document document, Font sectionFont, Font textFont, String title, String[] lines)
+            throws DocumentException {
+        document.add(new Paragraph(title, sectionFont));
+        for (String line : lines) {
+            document.add(new Paragraph(line, textFont));
+        }
+        document.add(new Paragraph(" ", textFont));
     }
 
     private String formatInvoiceDisplay(ClientInvoice invoice) {
