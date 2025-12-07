@@ -27,7 +27,7 @@
                 <band height="83" splitType="Stretch">
                         <staticText>
                                 <reportElement x="380" y="5" width="175" height="24" uuid="52642f83-ba95-4cad-ba9d-ef0598a0ce89"/>
-                                <textElement textAlignment="Center" textAdjust="ScaleFont">
+                                <textElement textAlignment="Center">
                                         <font fontName="Calibri" size="16" isBold="true"/>
                                 </textElement>
                                 <text><![CDATA[RECIBO DE]]></text>
