@@ -22,6 +22,7 @@ import repositories.ClientInvoiceDetailRepository;
 import repositories.ClientReceiptRepository;
 import repositories.ClientRepository;
 import utils.Constants;
+import utils.InvoiceTypeUtils;
 
 public class SubscriptionBillingService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -71,13 +72,13 @@ public class SubscriptionBillingService {
             return Constants.PRESUPUESTO_ABBR;
         }
         if (defaultInvoiceType != null && !defaultInvoiceType.isBlank()) {
-            return defaultInvoiceType.trim();
+            return InvoiceTypeUtils.toAbbreviation(defaultInvoiceType.trim());
         }
         String configured = AppConfig.get("subscription.invoice.type.default", Constants.FACTURA_A_ABBR);
         if (configured == null || configured.isBlank()) {
             return Constants.FACTURA_A_ABBR;
         }
-        return configured.trim();
+        return InvoiceTypeUtils.toAbbreviation(configured.trim());
     }
 
     public List<ClientInvoice> generateMonthlyInvoices(LocalDate billingDate, String defaultInvoiceType) {
