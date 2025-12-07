@@ -183,12 +183,12 @@ public class ClientInvoiceManualPrintService {
     }
 
     private String formatInvoiceNumber(String pointOfSale, String number) {
-        String safePos = safeString(pointOfSale);
-        String safeNumber = safeString(number);
+        String safePos = normalizeDigits(pointOfSale);
+        String safeNumber = normalizeDigits(number);
         if (safePos.isEmpty() && safeNumber.isEmpty()) {
             return "";
         }
-        return String.format(Locale.ROOT, "%s-%s", safePos, safeNumber);
+        return String.format(Locale.ROOT, "%s-%s", leftPadDigits(safePos, 4), leftPadDigits(safeNumber, 8));
     }
 
     private String formatAmount(BigDecimal value) {
@@ -220,6 +220,24 @@ public class ClientInvoiceManualPrintService {
 
     private String safeString(Object value) {
         return value == null ? "" : value.toString().trim();
+    }
+
+    private String normalizeDigits(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("[^0-9]", "");
+    }
+
+    private String leftPadDigits(String value, int size) {
+        String normalized = normalizeDigits(value);
+        if (normalized.length() > size) {
+            normalized = normalized.substring(normalized.length() - size);
+        }
+        if (normalized.isEmpty()) {
+            normalized = "0";
+        }
+        return String.format(Locale.ROOT, "%" + size + "s", normalized).replace(' ', '0');
     }
 }
 
