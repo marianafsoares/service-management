@@ -179,7 +179,10 @@ public final class AfipManagement {
                                           Map<String, String> defaultValues) throws IOException {
         writer.write("[PDF]");
         writer.newLine();
-        writeIniLine(writer, "LOGO", resolveConfiguredValue(PDF_LOGO_PROPERTY, defaultValues.get("LOGO"), ""));
+        String logoPath = resolveLogoValue(getAfipWorkingDirectory(), defaultValues.get("LOGO"));
+        if (logoPath != null) {
+            writeIniLine(writer, "LOGO", logoPath);
+        }
         writeIniLine(writer, "EMPRESA", resolveConfiguredValueAllowEmpty(PDF_COMPANY_NAME_PROPERTY,
                 defaultValues.get("EMPRESA"), resolveIssuerCuitLabel(invoice)));
         writeIniLine(writer, "MEMBRETE1", resolveConfiguredValue(PDF_HEADER_LINE1_PROPERTY,
@@ -197,6 +200,26 @@ public final class AfipManagement {
                 defaultValues.get("INICIO"), ""));
         writeIniLine(writer, "BORRADOR", resolveConfiguredValue(PDF_WATERMARK_PROPERTY,
                 defaultValues.get("BORRADOR"), ""));
+    }
+
+    private static String resolveLogoValue(File workingDirectory, String defaultValue) {
+        String configuredLogo = resolveConfiguredValueAllowEmpty(PDF_LOGO_PROPERTY, defaultValue, "");
+        if (configuredLogo == null || configuredLogo.trim().isEmpty()) {
+            return null;
+        }
+
+        String candidatePath = configuredLogo.trim();
+        File logoFile = new File(candidatePath);
+        if (!logoFile.isAbsolute()) {
+            logoFile = new File(workingDirectory, candidatePath);
+        }
+
+        if (!logoFile.isFile()) {
+            LOGGER.log(Level.WARNING, "No se encontró el logo configurado para PyAfip en {0}. Se usará el logo por defecto de la plantilla.", logoFile.getAbsolutePath());
+            return null;
+        }
+
+        return logoFile.getAbsolutePath();
     }
 
     private static void writeIniLine(BufferedWriter writer, String key, String value) throws IOException {
