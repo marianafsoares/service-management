@@ -30,7 +30,7 @@
                                 <textElement textAlignment="Center">
                                         <font fontName="Calibri" size="16" isBold="true"/>
                                 </textElement>
-                                <text><![CDATA[RECIBO DE COBRO]]></text>
+                                <text><![CDATA[RECIBO DE]]></text>
                         </staticText>
                         <staticText>
                                 <reportElement x="411" y="34" width="22" height="20" uuid="f8d5ace1-6ddb-40c2-b856-c57091985ed9"/>
@@ -81,7 +81,7 @@
                 </band>
         </title>
         <pageHeader>
-                <band height="130" splitType="Stretch">
+                <band height="140" splitType="Stretch">
                         <rectangle>
                                 <reportElement x="0" y="10" width="555" height="91" uuid="ba47e7bd-70e3-4caf-9ad9-f72ed62235f5"/>
                         </rectangle>
@@ -107,7 +107,7 @@
                                 <textFieldExpression><![CDATA[$F{fecha}]]></textFieldExpression>
                         </textField>
                         <staticText>
-                                <reportElement x="57" y="105" width="100" height="20" uuid="1839a046-a3e8-44fa-9c52-3f231a6fb009"/>
+                                <reportElement x="57" y="115" width="100" height="20" uuid="1839a046-a3e8-44fa-9c52-3f231a6fb009"/>
                                 <textElement>
                                         <font fontName="Calibri" size="12" isItalic="true"/>
                                 </textElement>
