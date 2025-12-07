@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Vector;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -171,7 +172,7 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
             for (models.ClientInvoice invoice : invoices) {
                 LocalDateTime date = invoice.getInvoiceDate();
                 String type = invoice.getInvoiceType();
-                String number = String.format("%s-%s", invoice.getPointOfSale(), invoice.getInvoiceNumber());
+                String number = formatNumber(invoice.getPointOfSale(), invoice.getInvoiceNumber());
                 BigDecimal total = invoice.getTotal();
                 items.add(new HistoryItem(date, type, number, total));
             }
@@ -180,7 +181,7 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
         if (receipts != null) {
             for (models.receipts.ClientReceipt receipt : receipts) {
                 LocalDateTime date = receipt.getReceiptDate();
-                String number = String.format("%s-%s", receipt.getPointOfSale(), receipt.getReceiptNumber());
+                String number = formatNumber(receipt.getPointOfSale(), receipt.getReceiptNumber());
                 BigDecimal total = receipt.getTotal();
                 items.add(new HistoryItem(date, Constants.RECIBO_ABBR, number, total));
             }
@@ -220,6 +221,27 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
 
     }
 
+    private String formatNumber(String pointOfSale, String number) {
+        return String.format("%s-%s", leftPadDigits(pointOfSale, 4), leftPadDigits(number, 8));
+    }
+
+    private String normalizeNumberPart(String value) {
+        if (value == null) {
+            return "";
+        }
+        String digits = value.replaceAll("[^0-9]", "");
+        return digits.replaceFirst("^0+", "");
+    }
+
+    private String leftPadDigits(String value, int size) {
+        String normalized = value == null ? "" : value.replaceAll("[^0-9]", "");
+        if (normalized.length() > size) {
+            normalized = normalized.substring(normalized.length() - size);
+        }
+        normalized = normalized.isEmpty() ? "0" : normalized;
+        return String.format(Locale.getDefault(), "%" + size + "s", normalized).replace(' ', '0');
+    }
+
     private void configureTableColumns() {
         TableUtils.configureClientHistoryViewTable(jTable1);
     }
@@ -227,11 +249,12 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
     private ClientInvoice findInvoice(int row) {
         String numberStr = jTable1.getValueAt(row, 2).toString();
         String[] parts = numberStr.split("-");
-        String pos = parts.length > 0 ? parts[0] : "";
-        String num = parts.length > 1 ? parts[1] : "";
+        String pos = normalizeNumberPart(parts.length > 0 ? parts[0] : "");
+        String num = normalizeNumberPart(parts.length > 1 ? parts[1] : "");
         if (invoices != null) {
             for (ClientInvoice inv : invoices) {
-                if (pos.equals(inv.getPointOfSale()) && num.equals(inv.getInvoiceNumber())) {
+                if (pos.equals(normalizeNumberPart(inv.getPointOfSale()))
+                        && num.equals(normalizeNumberPart(inv.getInvoiceNumber()))) {
                     return inv;
                 }
             }
@@ -242,11 +265,12 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
     private ClientReceipt findReceipt(int row) {
         String numberStr = jTable1.getValueAt(row, 2).toString();
         String[] parts = numberStr.split("-");
-        String pos = parts.length > 0 ? parts[0] : "";
-        String num = parts.length > 1 ? parts[1] : "";
+        String pos = normalizeNumberPart(parts.length > 0 ? parts[0] : "");
+        String num = normalizeNumberPart(parts.length > 1 ? parts[1] : "");
         if (receipts != null) {
             for (ClientReceipt r : receipts) {
-                if (pos.equals(r.getPointOfSale()) && num.equals(r.getReceiptNumber())) {
+                if (pos.equals(normalizeNumberPart(r.getPointOfSale()))
+                        && num.equals(normalizeNumberPart(r.getReceiptNumber()))) {
                     return r;
                 }
             }

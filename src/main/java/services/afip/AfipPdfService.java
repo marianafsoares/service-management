@@ -49,6 +49,10 @@ public class AfipPdfService {
     }
 
     public void generateAndPrint(ClientInvoice invoice, ClientInvoice associatedInvoice) {
+        generatePdfFile(invoice, associatedInvoice, true);
+    }
+
+    public File generatePdfFile(ClientInvoice invoice, ClientInvoice associatedInvoice, boolean openPdf) {
         Objects.requireNonNull(invoice, "invoice must not be null");
         try {
             AfipManagement.generateElectronicVoucherPdf(invoice, associatedInvoice);
@@ -57,7 +61,10 @@ public class AfipPdfService {
             List<String> commandWithConfig = injectConfigFile(commandToUse, configFile);
             runPdfProcess(commandWithConfig);
             File exportedPdf = copyGeneratedPdf(invoice);
-            openGeneratedPdf(exportedPdf);
+            if (openPdf) {
+                openGeneratedPdf(exportedPdf);
+            }
+            return exportedPdf;
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new AfipPdfException("El proceso de generación de la factura de AFIP fue interrumpido", ex);
@@ -246,6 +253,28 @@ public class AfipPdfService {
         }
 
         return target.toFile();
+    }
+
+    public File findExistingPdf(ClientInvoice invoice) {
+        if (invoice == null) {
+            return null;
+        }
+        String normalizedCuit = DocumentValidator.normalizeCuit(invoice.getIssuerCuit());
+        if (normalizedCuit == null || normalizedCuit.isBlank()) {
+            normalizedCuit = "sin-cuit";
+        }
+        String period = resolveInvoicePeriod(invoice.getInvoiceDate());
+        Path exportDirectory = Paths.get(AfipManagement.EXPORT_BASE_PATH)
+                .resolve(INVOICE_ROOT_FOLDER)
+                .resolve(normalizedCuit);
+        if (!period.isBlank()) {
+            exportDirectory = exportDirectory.resolve(period);
+        }
+        Path pdfPath = exportDirectory.resolve(buildPdfFileName(invoice));
+        if (Files.exists(pdfPath)) {
+            return pdfPath.toFile();
+        }
+        return null;
     }
 
     private void openGeneratedPdf(File pdfFile) {
