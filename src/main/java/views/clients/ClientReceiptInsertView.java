@@ -36,7 +36,9 @@ import controllers.BankController;
 import controllers.CardController;
 import configs.AppConfig;
 import configs.MyBatisConfig;
+import java.io.File;
 import java.util.Objects;
+import models.receipts.ReceiptDetailData;
 import mappers.ClientInvoiceMapper;
 import mappers.ClientMapper;
 import mappers.receipts.*;
@@ -68,6 +70,7 @@ import repositories.impl.BankRepositoryImpl;
 import repositories.impl.CardRepositoryImpl;
 import services.ClientService;
 import services.ClientReceiptService;
+import services.EmailService;
 import services.ReceiptCashService;
 import services.ReceiptCardService;
 import services.ReceiptChequeService;
@@ -75,7 +78,9 @@ import services.ReceiptRetentionService;
 import services.ReceiptTransferService;
 import services.BankService;
 import services.CardService;
+import services.reports.ClientReceiptPrintService;
 import views.utils.ComboBoxItem;
+import views.utils.ReceiptDetailLoader;
 import views.utils.ReceiptUtils;
 import utils.CuitSelectorUtils;
 import utils.DocumentValidator;
@@ -99,6 +104,8 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
     private ReceiptRetentionController receiptRetentionController;
     private BankController bankController;
     private CardController cardController;
+    private final ClientReceiptPrintService receiptPrintService;
+    private final EmailService emailService;
     private final SimpleDateFormat tableDateFormat = new SimpleDateFormat("dd-MM-yyyy");
     private boolean addingCheque = false;
     private boolean addingCard = false;
@@ -146,6 +153,8 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         receiptRetentionController = new ReceiptRetentionController(retentionService);
         bankController = new BankController(bankService);
         cardController = new CardController(cardCatalogService);
+        receiptPrintService = new ClientReceiptPrintService();
+        emailService = new EmailService();
 
         initComponents();
         configureTables();
@@ -2033,6 +2042,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
                 if (receipt != null) {
                     refreshClientTable(receipt.getClient());
                     JOptionPane.showMessageDialog(this, "Recibo guardado con éxito", "Cobranza", JOptionPane.INFORMATION_MESSAGE);
+                    maybeSendReceiptByEmail(receipt);
                     isOpen = false;
                     dispose();
                 }
@@ -2062,6 +2072,103 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         } catch (Exception ex) {
             Logger.getLogger(ClientReceiptInsertView.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private void maybeSendReceiptByEmail(ClientReceipt receipt) {
+        if (receipt == null || receipt.getClient() == null) {
+            return;
+        }
+        String email = receipt.getClient().getEmail();
+        if (email == null || email.trim().isEmpty()) {
+            return;
+        }
+
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                "¿Desea enviar el comprobante al correo " + email.trim() + "?",
+                "Enviar comprobante por mail",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (option != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        sendReceiptByEmail(receipt, email.trim());
+    }
+
+    private void sendReceiptByEmail(ClientReceipt receipt, String email) {
+        if (receipt == null || receipt.getClient() == null || email == null || email.isEmpty()) {
+            return;
+        }
+
+        try {
+            ReceiptDetailData detailData = ReceiptDetailLoader.loadClientReceipt(sqlSession, receipt, clientController);
+            if (detailData == null) {
+                return;
+            }
+
+            File pdf = receiptPrintService.exportPdf(receipt, receipt.getClient(), detailData);
+            if (pdf == null || !pdf.exists()) {
+                Logger.getLogger(ClientReceiptInsertView.class.getName())
+                        .log(Level.WARNING, "No se pudo generar el PDF del recibo {0}", receipt.getReceiptNumber());
+                return;
+            }
+
+            String subject = "Recibo " + formatReceiptLabel(receipt);
+            String body = buildReceiptEmailBody(receipt, detailData);
+            boolean sent = emailService.sendEmail(email, subject, body, List.of(pdf), true);
+            if (!sent) {
+                Logger.getLogger(ClientReceiptInsertView.class.getName())
+                        .log(Level.WARNING, "No se pudo enviar el mail del recibo a {0}", email);
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(ClientReceiptInsertView.class.getName())
+                    .log(Level.WARNING, "No se pudo enviar el mail del recibo", ex);
+        }
+    }
+
+    private String buildReceiptEmailBody(ClientReceipt receipt, ReceiptDetailData detailData) {
+        String clientName = receipt.getClient() != null ? receipt.getClient().getFullName() : "";
+        String formattedDate = null;
+        if (detailData != null && detailData.getReceiptDate() != null) {
+            Date date = Date.from(detailData.getReceiptDate().atZone(ZoneId.systemDefault()).toInstant());
+            formattedDate = tableDateFormat.format(date);
+        }
+        BigDecimal total = detailData != null ? detailData.getTotal() : null;
+
+        StringBuilder body = new StringBuilder();
+        body.append("<p>Hola ").append(clientName).append(",</p>");
+        body.append("<p>Adjuntamos el comprobante de pago ")
+                .append(formatReceiptLabel(receipt));
+        if (formattedDate != null) {
+            body.append(" generado el ").append(formattedDate);
+        }
+        body.append(".</p>");
+        if (total != null) {
+            body.append("<p>Importe total: <strong>$")
+                    .append(total.setScale(2, RoundingMode.HALF_EVEN))
+                    .append("</strong>.</p>");
+        }
+        body.append("<p>Muchas gracias.</p>");
+        return body.toString();
+    }
+
+    private String formatReceiptLabel(ClientReceipt receipt) {
+        if (receipt == null) {
+            return "";
+        }
+        String point = formatPointOfSale(receipt.getPointOfSale());
+        String number = receipt.getReceiptNumber();
+        String formattedPoint = point != null ? point : receipt.getPointOfSale();
+        if (formattedPoint == null || formattedPoint.isBlank()) {
+            return number != null ? number : "";
+        }
+        if (number == null || number.isBlank()) {
+            return formattedPoint;
+        }
+        return formattedPoint + "-" + number;
     }
 
     private void jTextFieldRetentionAmountKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextFieldRetentionAmountKeyPressed
