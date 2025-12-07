@@ -482,11 +482,18 @@ public final class AfipManagement {
         BigDecimal impIva = isInvoiceTypeC ? BigDecimal.ZERO
                 : truncateAmount(Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO)
                         .add(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO)), 2);
-        BigDecimal impTotal = truncateAmount(Optional.ofNullable(invoice.getTotal())
-                .orElse(isInvoiceTypeC ? impNeto : impNeto.add(impIva)), 2);
+        BigDecimal impTrib = BigDecimal.ZERO;
+
+        BigDecimal impTotal;
+        if (isInvoiceTypeC) {
+            // Para comprobantes tipo C AFIP exige que ImpTotal sea igual a ImpNeto + ImpTrib
+            impTotal = impNeto.add(impTrib);
+        } else {
+            impTotal = truncateAmount(Optional.ofNullable(invoice.getTotal()).orElse(impNeto.add(impIva)), 2);
+        }
 
         pw.print(formatAmount(impTotal, 13, 2));
-        pw.print(formatAmount(BigDecimal.ZERO, 13, 2));
+        pw.print(formatAmount(impTrib, 13, 2));
         pw.print(formatAmount(BigDecimal.ZERO, 13, 2));
         pw.print(formatAmount(impNeto, 13, 2));
         pw.print(formatAmount(impIva, 13, 2));
