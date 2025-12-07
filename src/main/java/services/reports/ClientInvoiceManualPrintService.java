@@ -87,7 +87,7 @@ public class ClientInvoiceManualPrintService {
                 ? invoice.getDetails() : Collections.emptyList();
         List<Map<String, ?>> rows = new ArrayList<>();
 
-        boolean fxInvoice = isBudgetInvoice(invoice);
+        boolean vatInclusiveInvoice = shouldUseVatInclusivePrices(invoice);
 
         Client client = invoice.getClient();
         String clientName = client != null ? safeString(client.getFullName()) : "";
@@ -107,11 +107,11 @@ public class ClientInvoiceManualPrintService {
 
         if (details.isEmpty()) {
             rows.add(buildDetailRow(null, total, formattedDate, formattedNumber, clientName, address,
-                    locality, condition, clientNumber, cuit, observations, documentType, fxInvoice));
+                    locality, condition, clientNumber, cuit, observations, documentType, vatInclusiveInvoice));
         } else {
             for (ClientInvoiceDetail detail : details) {
                 rows.add(buildDetailRow(detail, total, formattedDate, formattedNumber, clientName, address,
-                        locality, condition, clientNumber, cuit, observations, documentType, fxInvoice));
+                        locality, condition, clientNumber, cuit, observations, documentType, vatInclusiveInvoice));
             }
         }
 
@@ -121,7 +121,7 @@ public class ClientInvoiceManualPrintService {
     private Map<String, Object> buildDetailRow(ClientInvoiceDetail detail, String total, String formattedDate,
             String formattedNumber, String clientName, String address, String locality,
             String condition, String clientNumber, String cuit, String observations, String documentType,
-            boolean fxInvoice) {
+            boolean vatInclusiveInvoice) {
 
         Map<String, Object> row = new HashMap<>();
         row.put("tipoComprobante", documentType);
@@ -145,10 +145,17 @@ public class ClientInvoiceManualPrintService {
             BigDecimal quantity = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
             BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal() : unitPrice.multiply(quantity);
             BigDecimal vatAmount = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
-            BigDecimal lineTotal = subtotal.add(vatAmount);
-            BigDecimal displayUnitPrice = fxInvoice
-                    ? calculateUnitPriceWithVat(quantity, subtotal, vatAmount)
-                    : unitPrice;
+            BigDecimal displayUnitPrice;
+            BigDecimal lineTotal;
+
+            if (vatInclusiveInvoice) {
+                displayUnitPrice = unitPrice;
+                lineTotal = unitPrice.multiply(quantity);
+            } else {
+                lineTotal = subtotal.add(vatAmount);
+                displayUnitPrice = unitPrice;
+            }
+
             row.put("precio", formatAmount(displayUnitPrice));
             row.put("parcial", formatAmount(lineTotal));
             row.put("bonificacion", formatBonification(detail.getDiscountPercent()));
@@ -164,13 +171,12 @@ public class ClientInvoiceManualPrintService {
         return row;
     }
 
-    private boolean isBudgetInvoice(ClientInvoice invoice) {
+    private boolean shouldUseVatInclusivePrices(ClientInvoice invoice) {
         if (invoice == null || invoice.getInvoiceType() == null) {
             return false;
         }
-        String normalized = invoice.getInvoiceType().trim();
-        return Constants.PRESUPUESTO_ABBR.equalsIgnoreCase(normalized)
-                || Constants.PRESUPUESTO.equalsIgnoreCase(normalized);
+        String normalized = InvoiceTypeUtils.toStorageValue(invoice.getInvoiceType());
+        return InvoiceTypeUtils.isVatInclusive(normalized);
     }
 
     private BigDecimal calculateUnitPriceWithVat(BigDecimal quantity, BigDecimal subtotal, BigDecimal vatAmount) {
