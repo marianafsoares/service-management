@@ -502,6 +502,14 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         return parseAmount(value.toString());
     }
 
+    private String toNullableString(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isEmpty() ? null : text;
+    }
+
     @SuppressWarnings("unchecked")
     private ComboBoxItem<Integer> toIntegerComboItem(Object value) {
         if (value instanceof ComboBoxItem<?> item) {
@@ -1596,51 +1604,6 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
             return false;
         }
 
-        String originAccount = jTextFieldOriginAccount.getText().trim();
-        if (originAccount.isEmpty()) {
-            if (showMessages) {
-                JOptionPane.showMessageDialog(this, "Debe ingresar la cuenta de origen", "Transferencia", JOptionPane.WARNING_MESSAGE);
-                jTextFieldOriginAccount.requestFocus();
-            }
-            return false;
-        }
-
-        ComboBoxItem<Integer> originBankItem = getSelectedComboItem(jComboBoxOriginBank);
-        if (originBankItem == null || originBankItem.getValue() == null) {
-            if (showMessages) {
-                JOptionPane.showMessageDialog(this, "Debe seleccionar el banco de origen", "Transferencia", JOptionPane.WARNING_MESSAGE);
-                jComboBoxOriginBank.requestFocus();
-            }
-            return false;
-        }
-
-        String destinationAccount = jTextFieldDestinationAccount.getText().trim();
-        if (destinationAccount.isEmpty()) {
-            if (showMessages) {
-                JOptionPane.showMessageDialog(this, "Debe ingresar la cuenta de destino", "Transferencia", JOptionPane.WARNING_MESSAGE);
-                jTextFieldDestinationAccount.requestFocus();
-            }
-            return false;
-        }
-
-        ComboBoxItem<Integer> destinationBankItem = getSelectedComboItem(jComboBoxDestinationBank);
-        if (destinationBankItem == null || destinationBankItem.getValue() == null) {
-            if (showMessages) {
-                JOptionPane.showMessageDialog(this, "Debe seleccionar el banco de destino", "Transferencia", JOptionPane.WARNING_MESSAGE);
-                jComboBoxDestinationBank.requestFocus();
-            }
-            return false;
-        }
-
-        String reference = jTextFieldReference.getText().trim();
-        if (reference.isEmpty()) {
-            if (showMessages) {
-                JOptionPane.showMessageDialog(this, "Debe ingresar la referencia", "Transferencia", JOptionPane.WARNING_MESSAGE);
-                jTextFieldReference.requestFocus();
-            }
-            return false;
-        }
-
         String amountText = jTextFieldChequeAmount1.getText().trim();
         if (amountText.isEmpty()) {
             if (showMessages) {
@@ -1660,6 +1623,12 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
             }
             return false;
         }
+
+        ComboBoxItem<Integer> originBankItem = getSelectedComboItem(jComboBoxOriginBank);
+        ComboBoxItem<Integer> destinationBankItem = getSelectedComboItem(jComboBoxDestinationBank);
+        String originAccount = toNullableString(jTextFieldOriginAccount.getText());
+        String destinationAccount = toNullableString(jTextFieldDestinationAccount.getText());
+        String reference = toNullableString(jTextFieldReference.getText());
 
         addingTransfer = true;
         try {
@@ -1702,16 +1671,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
     }
 
     private boolean isTransferFormComplete() {
-        ComboBoxItem<Integer> originBankItem = getSelectedComboItem(jComboBoxOriginBank);
-        ComboBoxItem<Integer> destinationBankItem = getSelectedComboItem(jComboBoxDestinationBank);
-        return !jTextFieldOriginAccount.getText().trim().isEmpty()
-                && originBankItem != null
-                && originBankItem.getValue() != null
-                && !jTextFieldDestinationAccount.getText().trim().isEmpty()
-                && destinationBankItem != null
-                && destinationBankItem.getValue() != null
-                && !jTextFieldReference.getText().trim().isEmpty()
-                && !jTextFieldChequeAmount1.getText().trim().isEmpty();
+        return !jTextFieldChequeAmount1.getText().trim().isEmpty();
     }
 
     private void attemptAutoAddCheque() {
@@ -2001,19 +1961,17 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
             transfer.setReceiptType("CLIENT");
             ComboBoxItem<Integer> originBankItem = toIntegerComboItem(jTableTransferencias.getValueAt(i, 0));
             ComboBoxItem<Integer> destinationBankItem = toIntegerComboItem(jTableTransferencias.getValueAt(i, 2));
-            if (originBankItem == null || originBankItem.getValue() == null) {
-                throw new IllegalStateException("Banco de origen inválido en la transferencia " + (i + 1));
+            if (originBankItem != null && originBankItem.getValue() != null) {
+                transfer.setOriginBankId(originBankItem.getValue());
+                transfer.setOriginBankName(originBankItem.getLabel());
             }
-            if (destinationBankItem == null || destinationBankItem.getValue() == null) {
-                throw new IllegalStateException("Banco de destino inválido en la transferencia " + (i + 1));
+            if (destinationBankItem != null && destinationBankItem.getValue() != null) {
+                transfer.setDestinationBankId(destinationBankItem.getValue());
+                transfer.setDestinationBankName(destinationBankItem.getLabel());
             }
-            transfer.setOriginBankId(originBankItem.getValue());
-            transfer.setOriginBankName(originBankItem.getLabel());
-            transfer.setOriginAccount(String.valueOf(jTableTransferencias.getValueAt(i, 1)));
-            transfer.setDestinationBankId(destinationBankItem.getValue());
-            transfer.setDestinationBankName(destinationBankItem.getLabel());
-            transfer.setDestinationAccount(String.valueOf(jTableTransferencias.getValueAt(i, 3)));
-            transfer.setReference(String.valueOf(jTableTransferencias.getValueAt(i, 4)));
+            transfer.setOriginAccount(toNullableString(jTableTransferencias.getValueAt(i, 1)));
+            transfer.setDestinationAccount(toNullableString(jTableTransferencias.getValueAt(i, 3)));
+            transfer.setReference(toNullableString(jTableTransferencias.getValueAt(i, 4)));
             Object amountValue = jTableTransferencias.getValueAt(i, 5);
             transfer.setAmount(toBigDecimal(amountValue));
             receiptTransferController.save(transfer);
