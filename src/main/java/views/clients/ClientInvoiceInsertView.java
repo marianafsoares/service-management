@@ -2193,17 +2193,29 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
             invoice.setInvoiceDate(LocalDateTime.now());
         }
 
-        invoice.setSubtotal(parseAmountLabel(jTextFieldSubtotal));
-        invoice.setVat21(parseAmountLabel(jTextFieldIva21));
-        invoice.setVat105(parseAmountLabel(jTextFieldIva105));
-        invoice.setVat27(BigDecimal.ZERO);
-        invoice.setTotal(parseAmountLabel(jLabelTotal));
+        boolean vatInclusiveInvoice = InvoiceTypeUtils.isVatInclusive(invoiceTypeValue);
+
+        if (vatInclusiveInvoice) {
+            invoice.setSubtotal(parseAmountLabel(jLabelTotal));
+            invoice.setVat21(BigDecimal.ZERO);
+            invoice.setVat105(BigDecimal.ZERO);
+            invoice.setVat27(BigDecimal.ZERO);
+            invoice.setTotal(parseAmountLabel(jLabelTotal));
+        } else {
+            invoice.setSubtotal(parseAmountLabel(jTextFieldSubtotal));
+            invoice.setVat21(parseAmountLabel(jTextFieldIva21));
+            invoice.setVat105(parseAmountLabel(jTextFieldIva105));
+            invoice.setVat27(BigDecimal.ZERO);
+            invoice.setTotal(parseAmountLabel(jLabelTotal));
+        }
 
         return invoice;
     }
 
     private List<ClientInvoiceDetail> buildInvoiceDetails(ClientInvoice invoice) {
         List<ClientInvoiceDetail> details = new ArrayList<>();
+        boolean vatInclusiveInvoice = InvoiceTypeUtils.isVatInclusive(invoice.getInvoiceType());
+
         for (int i = 0; i < jTable1.getRowCount(); i++) {
             Object codeObj = jTable1.getValueAt(i, 0);
             Object quantityObj = jTable1.getValueAt(i, 2);
@@ -2225,13 +2237,33 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
             detail.setInvoice(invoice);
             detail.setArticleCode(code);
             detail.setArticleDescription(String.valueOf(jTable1.getValueAt(i, 1)));
-            detail.setQuantity(new BigDecimal(quantityObj.toString()));
+            BigDecimal quantity = new BigDecimal(quantityObj.toString());
+            detail.setQuantity(quantity);
+
+            BigDecimal discountPercent = new BigDecimal(discountObj != null ? discountObj.toString() : "0");
+            detail.setDiscountPercent(discountPercent);
             BigDecimal vatPercent = new BigDecimal(vatObj != null ? vatObj.toString() : "0");
+
             BigDecimal unitPrice = new BigDecimal(unitPriceObj.toString());
-            detail.setUnitPrice(unitPrice);
-            detail.setDiscountPercent(new BigDecimal(discountObj != null ? discountObj.toString() : "0"));
-            detail.setVatAmount(vatPercent);
-            detail.setSubtotal(new BigDecimal(subtotalObj.toString()));
+            BigDecimal priceWithDiscount = applyDiscount(unitPrice, discountPercent);
+            BigDecimal subtotal = new BigDecimal(subtotalObj.toString());
+            BigDecimal vatRate = vatPercent.movePointLeft(2);
+            BigDecimal vatAmount = subtotal.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);
+
+            if (vatInclusiveInvoice) {
+                BigDecimal subtotalWithVat = subtotal.add(vatAmount);
+                BigDecimal unitPriceWithVat = quantity.compareTo(BigDecimal.ZERO) == 0
+                        ? priceWithDiscount
+                        : subtotalWithVat.divide(quantity, 2, RoundingMode.HALF_UP);
+                detail.setUnitPrice(unitPriceWithVat);
+                detail.setVatAmount(BigDecimal.ZERO);
+                detail.setSubtotal(subtotalWithVat);
+            } else {
+                detail.setUnitPrice(priceWithDiscount);
+                detail.setVatAmount(vatAmount);
+                detail.setSubtotal(subtotal);
+            }
+
             details.add(detail);
         }
         return details;
