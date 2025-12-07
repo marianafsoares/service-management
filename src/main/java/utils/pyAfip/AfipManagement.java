@@ -65,8 +65,11 @@ public final class AfipManagement {
     public static final String EXPORT_BASE_PATH = resolveExportBasePath();
     private static final String EXPORT_DIRECTORY_PROPERTY = "afip.pdf.exportDir";
 
-    /** Default point of sale. */
-    public static final String DEFAULT_POINT_OF_SALE = "0003";
+    private static final DateTimeFormatter YEAR_FORMAT = DateTimeFormatter.ofPattern("yyyy");
+    private static final DateTimeFormatter MONTH_FORMAT = DateTimeFormatter.ofPattern("MM");
+
+    /** Default point of sale used for standard invoices. */
+    public static final String DEFAULT_POINT_OF_SALE = "0001";
 
     private static final BigDecimal VAT_RATE_21 = new BigDecimal("0.21");
     private static final BigDecimal VAT_RATE_105 = new BigDecimal("0.105");
@@ -344,7 +347,7 @@ public final class AfipManagement {
         } else {
             String userHome = System.getProperty("user.home");
             if (userHome != null && !userHome.trim().isEmpty()) {
-                path = userHome + File.separator + "Desktop" + File.separator + "Sistema";
+                path = userHome + File.separator + "Desktop" + File.separator;
             } else {
                 path = DEFAULT_AFIP_WORKING_DIRECTORY;
             }
@@ -354,6 +357,69 @@ public final class AfipManagement {
             path = path + File.separator;
         }
         return path;
+    }
+
+    private static String buildInvoiceExportPath(ClientInvoice invoice) {
+        LocalDateTime invoiceDate = invoice.getInvoiceDate() != null ? invoice.getInvoiceDate() : LocalDateTime.now();
+        String year = invoiceDate.format(YEAR_FORMAT);
+        String month = invoiceDate.format(MONTH_FORMAT);
+
+        String invoiceAbbreviation = InvoiceTypeUtils.toAbbreviation(invoice.getInvoiceType());
+        if (invoiceAbbreviation == null || invoiceAbbreviation.isBlank()) {
+            invoiceAbbreviation = "Factura";
+        }
+
+        String formattedPointOfSale = padLeftWithZeros(Optional.ofNullable(invoice.getPointOfSale()).orElse(""), 4);
+        String formattedInvoiceNumber = padLeftWithZeros(Optional.ofNullable(invoice.getInvoiceNumber()).orElse(""), 8);
+
+        String clientName = Optional.ofNullable(invoice.getClient()).map(Client::getFullName).orElse("").trim();
+        String clientDocument = buildClientDocumentLabel(invoice.getClient());
+
+        StringBuilder fileNameBuilder = new StringBuilder();
+        fileNameBuilder.append(invoiceAbbreviation.trim())
+                .append(' ')
+                .append(formattedPointOfSale)
+                .append('-')
+                .append(formattedInvoiceNumber);
+
+        if (!clientName.isEmpty()) {
+            fileNameBuilder.append(' ').append(clientName);
+        }
+
+        if (!clientDocument.isEmpty()) {
+            fileNameBuilder.append(' ').append(clientDocument);
+        }
+
+        String sanitizedName = fileNameBuilder.toString()
+                .replaceAll("[\\\\/:*?\\\"<>|]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        return Paths.get(EXPORT_BASE_PATH, "Facturas", year, month, sanitizedName + ".pdf").toString();
+    }
+
+    private static String buildClientDocumentLabel(Client client) {
+        if (client == null) {
+            return "";
+        }
+
+        String documentType = Optional.ofNullable(client.getDocumentType()).orElse("").trim();
+        String documentNumber = Optional.ofNullable(DocumentValidator.normalizeCuit(client.getDocumentNumber()))
+                .orElse("").trim();
+
+        if (documentType.isEmpty() && documentNumber.isEmpty()) {
+            return "";
+        }
+
+        if (documentType.isEmpty()) {
+            return documentNumber;
+        }
+
+        if (documentNumber.isEmpty()) {
+            return documentType;
+        }
+
+        return documentType + " " + documentNumber;
     }
 
     // ---------------------------------------------------------------------
@@ -599,9 +665,9 @@ public final class AfipManagement {
         pw.print(padLeftWithZeros("0", 10));
         pw.print(padRightWithSpaces("", 100));
 
-        String nomPdf = EXPORT_BASE_PATH + "factura" + invoice.getPointOfSale() + invoice.getInvoiceNumber() + ".pdf";
+        String nomPdf = buildInvoiceExportPath(invoice);
         pw.print(padRightWithSpaces(nomPdf, 100));
-
+        
         pw.print(padRightWithSpaces(readAfipOutputData(1194, 1200), 6));
         pw.print(padRightWithSpaces(readAfipOutputData(1200, 2200), 1000));
         pw.print(padRightWithSpaces("", 203));
