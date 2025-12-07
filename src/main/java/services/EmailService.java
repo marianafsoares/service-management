@@ -57,7 +57,12 @@ public class EmailService {
 
     private String resolvePassword() {
         String configured = AppConfig.get("mail.password", "");
-        return configured != null ? configured.trim() : null;
+        if (configured == null) {
+            return null;
+        }
+        // Gmail muestra la contraseña de aplicación separada en bloques; quitamos los espacios
+        // para evitar errores de autenticación al reutilizar ese formato.
+        return configured.replaceAll("\\s+", "");
     }
 
     private Session buildSession(String username, String password) {
