@@ -1686,6 +1686,9 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
 
     public static void limpiarFormulario() {
         try {
+            if (activeInstance != null) {
+                activeInstance.clearClientInfo();
+            }
             jTextFieldDniCuit.setText("");
             jTextFieldArticulo.setText("");
             jLabelCiudad.setText("");

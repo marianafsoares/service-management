@@ -37,28 +37,28 @@
                         <textField isBlankWhenNull="true">
                                 <reportElement x="205" y="10" width="200" height="18" uuid="60155e85-8e25-4690-823f-9ed6d9c06e0e"/>
                                 <textElement textAlignment="Center">
-                                        <font fontName="Calibri" size="13"/>
+                                        <font fontName="Calibri" size="12"/>
                                 </textElement>
                                 <textFieldExpression><![CDATA[$P{CompanyContactLine1}]]></textFieldExpression>
                         </textField>
                         <textField isBlankWhenNull="true">
                                 <reportElement x="205" y="32" width="200" height="18" uuid="f1d0a7de-0b1d-4e65-9a25-0d7b5fd21c7a"/>
                                 <textElement textAlignment="Center">
-                                        <font fontName="Calibri" size="13"/>
+                                        <font fontName="Calibri" size="12"/>
                                 </textElement>
                                 <textFieldExpression><![CDATA[$P{CompanyContactLine2}]]></textFieldExpression>
                         </textField>
                         <textField isBlankWhenNull="true">
                                 <reportElement x="205" y="54" width="200" height="18" uuid="a4f62ddb-ac54-4a99-a026-3b1e8c853fd5"/>
                                 <textElement textAlignment="Center">
-                                        <font fontName="Calibri" size="13"/>
+                                        <font fontName="Calibri" size="12"/>
                                 </textElement>
                                 <textFieldExpression><![CDATA[$P{CompanyContactLine3}]]></textFieldExpression>
                         </textField>
                         <textField isBlankWhenNull="true">
                                 <reportElement x="205" y="76" width="200" height="18" uuid="c5df26f3-94ca-4a94-8f6b-f48b8c0ec3f1"/>
                                 <textElement textAlignment="Center">
-                                        <font fontName="Calibri" size="13"/>
+                                        <font fontName="Calibri" size="12"/>
                                 </textElement>
                                 <textFieldExpression><![CDATA[$P{CompanyContactLine4}]]></textFieldExpression>
                         </textField>
@@ -85,38 +85,38 @@
 			</rectangle>
 			<textField>
 				<reportElement x="19" y="52" width="302" height="20" uuid="a9b9507e-4d47-4c0e-935f-c552de73c523"/>
-				<textElement>
-					<font fontName="Calibri" size="16"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{direccion}]]></textFieldExpression>
+                                <textElement>
+                                        <font fontName="Calibri" size="14"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{direccion}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="19" y="34" width="302" height="20" uuid="5d2652a2-a124-4651-8606-08608511503d"/>
-				<textElement>
-					<font fontName="Calibri" size="16"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{cliente}]]></textFieldExpression>
+                                <textElement>
+                                        <font fontName="Calibri" size="14"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{cliente}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="397" y="86" width="149" height="20" uuid="9b2b28b8-59d8-41f9-8fa4-f85ae192ff8d"/>
-				<textElement>
-					<font fontName="Calibri" size="16"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{cuit}]]></textFieldExpression>
+                                <textElement>
+                                        <font fontName="Calibri" size="14"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{cuit}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="19" y="69" width="301" height="20" uuid="382dfe69-491c-4c49-bca9-47210b33d2f6"/>
-				<textElement>
-					<font fontName="Calibri" size="16"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{localidad}]]></textFieldExpression>
+                                <textElement>
+                                        <font fontName="Calibri" size="14"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{localidad}]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="19" y="86" width="236" height="20" uuid="5dbf01c1-3d2f-4b7a-bd6b-a8b82f5c148e"/>
-				<textElement>
-					<font fontName="Calibri" size="16"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{condicion}]]></textFieldExpression>
+                                <textElement>
+                                        <font fontName="Calibri" size="14"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{condicion}]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement x="1" y="134" width="52" height="20" uuid="54dc1ca5-990a-4b8d-804a-6bcafe0a350e"/>
@@ -140,7 +140,7 @@
                                 <text><![CDATA[Bonif]]></text>
                         </staticText>
                         <staticText>
-                                <reportElement x="420" y="134" width="139" height="20" uuid="f7f08e06-0fa7-468d-9940-f85c03ae01b1"/>
+                                <reportElement x="420" y="134" width="120" height="20" uuid="f7f08e06-0fa7-468d-9940-f85c03ae01b1"/>
                                 <textElement textAlignment="Right">
                                         <font size="12" isBold="true"/>
                                 </textElement>
