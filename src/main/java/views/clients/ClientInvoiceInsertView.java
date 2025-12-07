@@ -1023,12 +1023,21 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
         return quantity.multiply(priceWithDiscount);
     }
 
+    private static final BigDecimal SUBTOTAL_TOLERANCE = new BigDecimal("0.01");
+
     private BigDecimal normalize(BigDecimal value) {
         if (value == null) {
             return BigDecimal.ZERO;
         }
         BigDecimal normalized = value.stripTrailingZeros();
         return normalized.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : normalized;
+    }
+
+    private boolean isSubtotalWithinTolerance(BigDecimal expected, BigDecimal actual) {
+        BigDecimal normalizedExpected = normalize(expected);
+        BigDecimal normalizedActual = normalize(actual);
+        BigDecimal difference = normalizedExpected.subtract(normalizedActual).abs();
+        return difference.compareTo(SUBTOTAL_TOLERANCE) <= 0;
     }
 
     private BigDecimal enforceStockLimit(DefaultTableModel model, int row, BigDecimal desiredQuantity) {
@@ -2558,7 +2567,7 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
             }
 
             BigDecimal expectedSubtotal = calculateInvoiceSubtotal(code, quantity, price, discount, vatPercent);
-            if (!normalize(expectedSubtotal).equals(normalize(subtotal))) {
+            if (!isSubtotalWithinTolerance(expectedSubtotal, subtotal)) {
                 String message = "No coincide subtotal! Fila: " + (i + 1);
                 logInvoiceWarning(message);
                 JOptionPane.showMessageDialog(this, message, "Atencion", JOptionPane.WARNING_MESSAGE);
