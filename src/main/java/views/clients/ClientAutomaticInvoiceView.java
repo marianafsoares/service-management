@@ -235,7 +235,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             if (client.getEmail() != null && !client.getEmail().isBlank()) {
                 boolean sent = sendInvoiceEmail(client, invoice, amount, detail);
                 summary.append("Factura ")
-                        .append(invoice.getInvoiceNumber())
+                        .append(formatInvoiceDisplay(invoice))
                         .append(sent ? " enviada a " : " no se pudo enviar a ")
                         .append(client.getEmail())
                         .append(" (cliente: ")

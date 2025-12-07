@@ -114,9 +114,13 @@ public class SubscriptionBillingService {
         invoice.setClient(client);
         invoice.setInvoiceDate(billingDate != null ? billingDate.atStartOfDay() : LocalDateTime.now());
         invoice.setInvoiceType(resolveInvoiceType(client, defaultInvoiceType));
-        String pointOfSale = AppConfig.get("pos.default", "0");
+        String pointOfSale = sanitizeDigits(AppConfig.get("pos.default", "0"));
+        if (pointOfSale.isBlank()) {
+            pointOfSale = "0";
+        }
         invoice.setPointOfSale(pointOfSale);
-        invoice.setInvoiceNumber(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
+        String invoiceNumber = sanitizeDigits(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
+        invoice.setInvoiceNumber(invoiceNumber.isBlank() ? "1" : invoiceNumber);
         invoice.setIssuerCuit(resolveIssuerCuit());
         invoice.setSubtotal(amount);
         invoice.setTotal(amount);
