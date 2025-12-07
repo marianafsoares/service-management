@@ -121,10 +121,9 @@ public class SubscriptionBillingService {
         String invoiceNumber = sanitizeDigits(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
         invoice.setInvoiceNumber(invoiceNumber.isBlank() ? "1" : invoiceNumber);
         invoice.setIssuerCuit(resolveIssuerCuit());
-        boolean fxInvoice = Constants.PRESUPUESTO_ABBR.equalsIgnoreCase(invoiceType)
-                || Constants.PRESUPUESTO.equalsIgnoreCase(invoiceType);
-        BigDecimal netAmount = fxInvoice ? calculateNetAmount(amount) : amount;
-        BigDecimal vatAmount = fxInvoice ? amount.subtract(netAmount) : BigDecimal.ZERO;
+        boolean vatInclusiveInvoice = InvoiceTypeUtils.isVatInclusive(invoiceType);
+        BigDecimal netAmount = vatInclusiveInvoice ? amount : calculateNetAmount(amount);
+        BigDecimal vatAmount = vatInclusiveInvoice ? BigDecimal.ZERO : amount.subtract(netAmount);
 
         invoice.setSubtotal(netAmount);
         invoice.setVat21(vatAmount);
