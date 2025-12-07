@@ -618,7 +618,7 @@ public final class AfipManagement {
 
     private static boolean shouldIncludeAssociatedReceipt(ClientInvoice invoice) {
         int tipo = resolveAfipTypeCode(invoice.getInvoiceType());
-        List<Integer> tipos = Arrays.asList(202, 203, 207, 208, 9, 10, 2, 3);
+        List<Integer> tipos = Arrays.asList(202, 203, 207, 208, 9, 10, 2, 3, 12, 13);
         return tipos.contains(tipo);
     }
 
