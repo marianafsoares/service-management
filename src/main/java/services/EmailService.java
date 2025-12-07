@@ -5,6 +5,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.mail.Authenticator;
+import javax.mail.AuthenticationFailedException;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
@@ -36,6 +37,13 @@ public class EmailService {
             message.setText(body);
             Transport.send(message);
             return true;
+        } catch (AuthenticationFailedException ex) {
+            LOGGER.log(Level.WARNING,
+                    "No se pudo enviar el mail a " + to
+                            + ". Activá la verificación en dos pasos en la cuenta y generá una contraseña de aplicación"
+                            + " para SMTP (Gmail > Seguridad > Contraseñas de aplicaciones).",
+                    ex);
+            return false;
         } catch (MessagingException ex) {
             LOGGER.log(Level.WARNING, "No se pudo enviar el mail a " + to, ex);
             return false;
@@ -49,7 +57,12 @@ public class EmailService {
 
     private String resolvePassword() {
         String configured = AppConfig.get("mail.password", "");
-        return configured != null ? configured.trim() : null;
+        if (configured == null) {
+            return null;
+        }
+        // Gmail muestra la contraseña de aplicación separada en bloques; quitamos los espacios
+        // para evitar errores de autenticación al reutilizar ese formato.
+        return configured.replaceAll("\\s+", "");
     }
 
     private Session buildSession(String username, String password) {
