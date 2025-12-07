@@ -402,10 +402,10 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
             }
         });
         getContentPane().add(jButtonPrint);
-        jButtonPrint.setBounds(430, 400, 150, 30);
+        jButtonPrint.setBounds(420, 400, 150, 30);
 
         jButtonResend.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
-        jButtonResend.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/facturacion.png"))); // NOI18N
+        jButtonResend.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/modificar.png"))); // NOI18N
         jButtonResend.setText("Reenviar");
         jButtonResend.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -413,7 +413,7 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
             }
         });
         getContentPane().add(jButtonResend);
-        jButtonResend.setBounds(610, 400, 170, 30);
+        jButtonResend.setBounds(350, 440, 140, 30);
 
         jLabelInvoiceType.setFont(new java.awt.Font("Calibri", 1, 20)); // NOI18N
         getContentPane().add(jLabelInvoiceType);
@@ -524,7 +524,7 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
                 JOptionPane.showMessageDialog(this, "No se pudo enviar el mail a " + email.trim(), "Reenviar",
                         JOptionPane.WARNING_MESSAGE);
             }
-        } catch (AfipPdfException | ManualInvoicePrintException ex) {
+        } catch (AfipPdfException ex) {
             Logger.getLogger(ClientInvoiceDetailView.class.getName()).log(Level.SEVERE, null, ex);
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Reenviar", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {

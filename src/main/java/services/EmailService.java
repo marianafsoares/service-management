@@ -2,6 +2,7 @@ package services;
 
 import configs.AppConfig;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -81,7 +82,10 @@ public class EmailService {
         } catch (MessagingException ex) {
             LOGGER.log(Level.WARNING, "No se pudo enviar el mail a " + to, ex);
             return false;
+        } catch (IOException ex) {
+            Logger.getLogger(EmailService.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return false;
     }
 
     private String resolveSender() {
