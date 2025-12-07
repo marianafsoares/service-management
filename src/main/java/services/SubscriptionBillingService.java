@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.math.RoundingMode;
 import models.Client;
 import models.ClientInvoice;
 import models.ClientInvoiceDetail;
@@ -27,6 +28,8 @@ import utils.InvoiceTypeUtils;
 public class SubscriptionBillingService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DecimalFormat AMOUNT_FORMATTER = new DecimalFormat("0.00");
+    private static final BigDecimal VAT_RATE_21 = new BigDecimal("0.21");
+    private static final int MONEY_SCALE = 2;
 
     private final ClientRepository clientRepository;
     private final ClientInvoiceRepository clientInvoiceRepository;
@@ -135,6 +138,14 @@ public class SubscriptionBillingService {
         clientInvoiceRepository.insert(invoice);
         persistDetail(invoice, netAmount, vatAmount, description);
         return invoice;
+    }
+
+    private BigDecimal calculateNetAmount(BigDecimal amount) {
+        if (amount == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal divisor = BigDecimal.ONE.add(VAT_RATE_21);
+        return amount.divide(divisor, MONEY_SCALE, RoundingMode.HALF_UP);
     }
 
     public List<AccountStatementLine> buildStatementSinceLastZero(Integer clientId) {
