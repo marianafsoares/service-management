@@ -4,12 +4,14 @@ import configs.AppConfig;
 import configs.MyBatisConfig;
 import controllers.ClientController;
 import java.awt.event.KeyEvent;
+import java.io.File;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import javax.swing.JOptionPane;
@@ -33,6 +35,8 @@ import repositories.impl.ClientReceiptRepositoryImpl;
 import services.ClientService;
 import services.EmailService;
 import services.SubscriptionBillingService;
+import services.afip.AfipPdfException;
+import services.afip.AfipPdfService;
 
 public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
@@ -40,6 +44,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
     private final ClientController clientController;
     private final SubscriptionBillingService subscriptionBillingService;
     private final EmailService emailService;
+    private final AfipPdfService afipPdfService;
     private final DecimalFormat currencyFormat;
     private final String defaultInvoiceType;
 
@@ -59,6 +64,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         subscriptionBillingService = new SubscriptionBillingService(clientRepository, clientInvoiceRepository,
                 clientInvoiceDetailRepository, clientReceiptRepository);
         emailService = new EmailService();
+        afipPdfService = new AfipPdfService();
         currencyFormat = createCurrencyFormat();
         defaultInvoiceType = AppConfig.get("subscription.invoice.type.default", null);
 
@@ -103,8 +109,8 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         setMaximizable(true);
         setResizable(true);
         setTitle("Facturación automática");
-        setMinimumSize(new java.awt.Dimension(500, 380));
-        setPreferredSize(new java.awt.Dimension(520, 420));
+        setMinimumSize(new java.awt.Dimension(650, 420));
+        setPreferredSize(new java.awt.Dimension(700, 460));
         getContentPane().setLayout(null);
 
         jLabel1.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
@@ -124,7 +130,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             }
         });
         getContentPane().add(jTextFieldDetail);
-        jTextFieldDetail.setBounds(210, 25, 260, 30);
+        jTextFieldDetail.setBounds(210, 25, 380, 30);
 
         jFormattedTextFieldAmount.setFormatterFactory(new javax.swing.text.DefaultFormatterFactory(new javax.swing.text.NumberFormatter(new java.text.DecimalFormat("#0.00"))));
         jFormattedTextFieldAmount.setFont(new java.awt.Font("Calibri", 0, 14)); // NOI18N
@@ -144,7 +150,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             }
         });
         getContentPane().add(jButtonSend);
-        jButtonSend.setBounds(30, 120, 200, 35);
+        jButtonSend.setBounds(30, 120, 220, 35);
 
         jButtonClose.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
         jButtonClose.setText("Cerrar");
@@ -154,7 +160,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             }
         });
         getContentPane().add(jButtonClose);
-        jButtonClose.setBounds(250, 120, 150, 35);
+        jButtonClose.setBounds(270, 120, 150, 35);
 
         jTextAreaSummary.setEditable(false);
         jTextAreaSummary.setColumns(20);
@@ -164,7 +170,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         jScrollPane1.setViewportView(jTextAreaSummary);
 
         getContentPane().add(jScrollPane1);
-        jScrollPane1.setBounds(30, 180, 440, 160);
+        jScrollPane1.setBounds(30, 180, 620, 200);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -223,6 +229,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 skipped++;
                 continue;
             }
+            BigDecimal previousBalance = resolveBalance(client.getId());
             ClientInvoice invoice = subscriptionBillingService.generateInvoiceForClient(client, LocalDate.now(),
                     defaultInvoiceType, amount, detail);
             if (invoice == null) {
@@ -232,12 +239,14 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 skipped++;
                 continue;
             }
+            File pdfAttachment = generateInvoicePdf(invoice);
             if (client.getEmail() != null && !client.getEmail().isBlank()) {
-                boolean sent = sendInvoiceEmail(client, invoice, amount, detail);
+                boolean sent = sendInvoiceEmail(client, invoice, amount, detail, previousBalance, pdfAttachment);
                 summary.append("Factura ")
                         .append(formatInvoiceDisplay(invoice))
                         .append(sent ? " enviada a " : " no se pudo enviar a ")
                         .append(client.getEmail())
+                        .append(pdfAttachment != null ? " (adjunto PDF)" : "")
                         .append(" (cliente: ")
                         .append(client.getFullName())
                         .append(")\n");
@@ -293,21 +302,53 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         JOptionPane.showMessageDialog(this, message, "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private boolean sendInvoiceEmail(Client client, ClientInvoice invoice, BigDecimal amount, String detail) {
+    private boolean sendInvoiceEmail(Client client, ClientInvoice invoice, BigDecimal amount, String detail,
+            BigDecimal previousBalance, File pdfAttachment) {
         String subject = "Factura " + formatInvoiceDisplay(invoice);
-        String body = new StringBuilder()
-                .append("Hola ").append(client.getFullName()).append(",\n\n")
-                .append("Te enviamos la factura generada el ")
+        BigDecimal safePrevBalance = previousBalance != null ? previousBalance : BigDecimal.ZERO;
+        BigDecimal newBalance = safePrevBalance.add(amount);
+
+        StringBuilder body = new StringBuilder()
+                .append("<p>Hola ")
+                .append(client.getFullName())
+                .append(",</p>")
+                .append("<p>Te enviamos la factura generada el ")
                 .append(invoice.getInvoiceDate() != null
                         ? DateTimeFormatter.ofPattern("dd/MM/yyyy").format(invoice.getInvoiceDate())
                         : "hoy")
-                .append(".\n")
-                .append("Detalle: ").append(detail).append("\n")
-                .append("Total: $").append(currencyFormat.format(amount)).append("\n\n")
-                .append("Gracias.\n")
+                .append(".</p>")
+                .append("<p>Detalle: ")
+                .append(detail)
+                .append("<br/>Total: $")
+                .append(currencyFormat.format(amount))
+                .append("</p>");
+
+        if (safePrevBalance.compareTo(BigDecimal.ZERO) != 0) {
+            body.append("<p><strong>Saldo anterior: $")
+                    .append(currencyFormat.format(safePrevBalance))
+                    .append("</strong></p>");
+        }
+        if (safePrevBalance.compareTo(BigDecimal.ZERO) > 0) {
+            body.append("<p>Tenías un saldo deudor. Con esta factura tu nuevo saldo es de $")
+                    .append(currencyFormat.format(newBalance))
+                    .append(".</p>");
+        }
+
+        body.append("<p>Datos para el pago:<br/>")
+                .append("Caja Ahorro Pesos Galicia.<br/>Número de cuenta<br/>4006250-2 393-5<br/>CBU<br/>00703930 30004006250255<br/>DNI<br/>32862872<br/>Alias de CBU<br/>MARIANA.SOARES<br/><br/>")
+                .append("Caja Ahorro Pesos Banco Provincia.<br/>Número de Cuenta:<br/>6715-502610/5<br/>CBU:<br/>0140373003671550261059<br/>CBU Alias:<br/>MARIANA.SOARES.P <br/><br/>")
+                .append("Cuenta DNI<br/>32862872</p>")
+                .append("<p>Por favor enviar comprobante al teléfono: 2392519656.</p>")
+                .append("<p>Gracias.<br/>")
                 .append(AppConfig.get("company.name", ""))
-                .toString();
-        return emailService.sendEmail(client.getEmail(), subject, body);
+                .append("</p>");
+
+        List<File> attachments = new ArrayList<>();
+        if (pdfAttachment != null && pdfAttachment.exists()) {
+            attachments.add(pdfAttachment);
+        }
+
+        return emailService.sendEmail(client.getEmail(), subject, body.toString(), attachments, true);
     }
 
     private String formatInvoiceDisplay(ClientInvoice invoice) {
@@ -355,6 +396,27 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             return client.getSubscriptionAmount();
         }
         return defaultAmount;
+    }
+
+    private BigDecimal resolveBalance(Integer clientId) {
+        try {
+            BigDecimal balance = clientController.getBalance(clientId);
+            return balance != null ? balance : BigDecimal.ZERO;
+        } catch (Exception ex) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private File generateInvoicePdf(ClientInvoice invoice) {
+        try {
+            File exported = afipPdfService.findExistingPdf(invoice);
+            if (exported != null && exported.exists()) {
+                return exported;
+            }
+            return afipPdfService.generatePdfFile(invoice, null, false);
+        } catch (AfipPdfException ex) {
+            return null;
+        }
     }
 
     private String resolveContact(Client client) {

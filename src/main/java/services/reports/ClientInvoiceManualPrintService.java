@@ -13,6 +13,7 @@ import models.Client;
 import models.ClientInvoice;
 import models.ClientInvoiceDetail;
 import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
@@ -46,13 +47,29 @@ public class ClientInvoiceManualPrintService {
         }
 
         try {
-            JasperReport report = loadReport();
-            Map<String, Object> parameters = createReportParameters(invoice);
-            JRMapCollectionDataSource dataSource = new JRMapCollectionDataSource(buildReportData(invoice));
-            JasperPrint jasperPrint = JasperFillManager.fillReport(report, parameters, dataSource);
+            JasperPrint jasperPrint = createBudgetReport(invoice);
             JasperViewerUtils.showViewer(new JasperViewer(jasperPrint, false), Constants.PRESUPUESTO);
         } catch (JRException ex) {
             throw new ManualInvoicePrintException("Error al generar el presupuesto", ex);
+        }
+    }
+
+    public JasperPrint createBudgetReport(ClientInvoice invoice) throws JRException {
+        JasperReport report = loadReport();
+        Map<String, Object> parameters = createReportParameters(invoice);
+        JRMapCollectionDataSource dataSource = new JRMapCollectionDataSource(buildReportData(invoice));
+        return JasperFillManager.fillReport(report, parameters, dataSource);
+    }
+
+    public void exportBudgetPdf(ClientInvoice invoice, String outputPath) throws ManualInvoicePrintException {
+        if (outputPath == null || outputPath.isBlank()) {
+            throw new ManualInvoicePrintException("No se configuró la ruta de exportación del presupuesto");
+        }
+        try {
+            JasperPrint jasperPrint = createBudgetReport(invoice);
+            JasperExportManager.exportReportToPdfFile(jasperPrint, outputPath);
+        } catch (JRException ex) {
+            throw new ManualInvoicePrintException("Error al exportar el presupuesto a PDF", ex);
         }
     }
 

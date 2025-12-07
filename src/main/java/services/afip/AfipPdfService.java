@@ -19,7 +19,10 @@ import java.time.format.DateTimeFormatter;
 
 import models.ClientInvoice;
 import utils.DocumentValidator;
+import utils.InvoiceTypeUtils;
 import utils.pyAfip.AfipManagement;
+import services.reports.ClientInvoiceManualPrintService;
+import services.reports.ManualInvoicePrintException;
 
 /**
  * Handles the generation of the factura.txt file consumed by PyAfipWs and the
@@ -32,6 +35,7 @@ public class AfipPdfService {
 
     private final List<String> overrideCommand;
     private final AfipCommandResolver commandResolver;
+    private final ClientInvoiceManualPrintService manualPrintService;
 
     public AfipPdfService() {
         this(null, new AfipCommandResolver());
@@ -46,23 +50,40 @@ public class AfipPdfService {
                 ? null
                 : new ArrayList<>(command);
         this.commandResolver = resolver == null ? new AfipCommandResolver() : resolver;
+        this.manualPrintService = new ClientInvoiceManualPrintService();
     }
 
     public void generateAndPrint(ClientInvoice invoice, ClientInvoice associatedInvoice) {
+        generatePdfFile(invoice, associatedInvoice, true);
+    }
+
+    public File generatePdfFile(ClientInvoice invoice, ClientInvoice associatedInvoice, boolean openPdf) {
         Objects.requireNonNull(invoice, "invoice must not be null");
         try {
+            if (!InvoiceTypeUtils.requiresAfipAuthorization(invoice.getInvoiceType())) {
+                File exportedPdf = generateManualBudgetPdf(invoice);
+                if (openPdf) {
+                    openGeneratedPdf(exportedPdf);
+                }
+                return exportedPdf;
+            }
             AfipManagement.generateElectronicVoucherPdf(invoice, associatedInvoice);
             File configFile = AfipManagement.preparePdfConfiguration(invoice);
             List<String> commandToUse = resolveCommand(invoice.getIssuerCuit());
             List<String> commandWithConfig = injectConfigFile(commandToUse, configFile);
             runPdfProcess(commandWithConfig);
             File exportedPdf = copyGeneratedPdf(invoice);
-            openGeneratedPdf(exportedPdf);
+            if (openPdf) {
+                openGeneratedPdf(exportedPdf);
+            }
+            return exportedPdf;
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new AfipPdfException("El proceso de generación de la factura de AFIP fue interrumpido", ex);
         } catch (IOException ex) {
             throw new AfipPdfException("No se pudo ejecutar el comando de generación de AFIP", ex);
+        } catch (ManualInvoicePrintException ex) {
+            throw new AfipPdfException("No se pudo generar el PDF del presupuesto", ex);
         }
     }
 
@@ -215,27 +236,7 @@ public class AfipPdfService {
                     generatedPdf.getAbsolutePath()));
         }
 
-        String normalizedCuit = DocumentValidator.normalizeCuit(invoice.getIssuerCuit());
-        if (normalizedCuit == null || normalizedCuit.isBlank()) {
-            normalizedCuit = "sin-cuit";
-        }
-
-        String period = resolveInvoicePeriod(invoice.getInvoiceDate());
-
-        Path exportDirectory = Paths.get(AfipManagement.EXPORT_BASE_PATH)
-                .resolve(INVOICE_ROOT_FOLDER)
-                .resolve(normalizedCuit);
-        if (!period.isBlank()) {
-            exportDirectory = exportDirectory.resolve(period);
-        }
-
-        try {
-            Files.createDirectories(exportDirectory);
-        } catch (IOException ex) {
-            throw new AfipPdfException(String.format(
-                    "No se pudo crear la carpeta de exportación de facturas '%s'.",
-                    exportDirectory.toAbsolutePath()), ex);
-        }
+        Path exportDirectory = resolveExportDirectory(invoice);
 
         Path source = generatedPdf.toPath();
         Path target = exportDirectory.resolve(fileName);
@@ -246,6 +247,18 @@ public class AfipPdfService {
         }
 
         return target.toFile();
+    }
+
+    public File findExistingPdf(ClientInvoice invoice) {
+        if (invoice == null) {
+            return null;
+        }
+        Path exportDirectory = resolveExportDirectory(invoice);
+        Path pdfPath = exportDirectory.resolve(buildPdfFileName(invoice));
+        if (Files.exists(pdfPath)) {
+            return pdfPath.toFile();
+        }
+        return null;
     }
 
     private void openGeneratedPdf(File pdfFile) {
@@ -278,5 +291,38 @@ public class AfipPdfService {
     private String resolveInvoicePeriod(LocalDateTime invoiceDate) {
         LocalDateTime dateTime = invoiceDate != null ? invoiceDate : LocalDateTime.now();
         return dateTime.format(INVOICE_PERIOD_FORMAT);
+    }
+
+    private Path resolveExportDirectory(ClientInvoice invoice) {
+        String normalizedCuit = DocumentValidator.normalizeCuit(invoice.getIssuerCuit());
+        if (normalizedCuit == null || normalizedCuit.isBlank()) {
+            normalizedCuit = "sin-cuit";
+        }
+
+        String period = resolveInvoicePeriod(invoice.getInvoiceDate());
+
+        Path exportDirectory = Paths.get(AfipManagement.EXPORT_BASE_PATH)
+                .resolve(INVOICE_ROOT_FOLDER)
+                .resolve(normalizedCuit);
+        if (!period.isBlank()) {
+            exportDirectory = exportDirectory.resolve(period);
+        }
+
+        try {
+            Files.createDirectories(exportDirectory);
+        } catch (IOException ex) {
+            throw new AfipPdfException(String.format(
+                    "No se pudo crear la carpeta de exportación de facturas '%s'.",
+                    exportDirectory.toAbsolutePath()), ex);
+        }
+
+        return exportDirectory;
+    }
+
+    private File generateManualBudgetPdf(ClientInvoice invoice) throws ManualInvoicePrintException {
+        Path exportDirectory = resolveExportDirectory(invoice);
+        Path target = exportDirectory.resolve(buildPdfFileName(invoice));
+        manualPrintService.exportBudgetPdf(invoice, target.toString());
+        return target.toFile();
     }
 }
