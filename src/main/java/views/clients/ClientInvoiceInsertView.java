@@ -1024,8 +1024,7 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
     }
 
     private BigDecimal calculateInvoiceSubtotal(String code, BigDecimal quantity, BigDecimal price, BigDecimal discount, BigDecimal vatPercent) {
-        BigDecimal basePrice = "99".equals(code) ? calculateNetFromGross(price, vatPercent) : price;
-        BigDecimal priceWithDiscount = applyDiscount(basePrice, discount);
+        BigDecimal priceWithDiscount = applyDiscount(price, discount);
         return quantity.multiply(priceWithDiscount);
     }
 
@@ -1687,6 +1686,9 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
 
     public static void limpiarFormulario() {
         try {
+            if (activeInstance != null) {
+                activeInstance.clearClientInfo();
+            }
             jTextFieldDniCuit.setText("");
             jTextFieldArticulo.setText("");
             jLabelCiudad.setText("");
@@ -2226,9 +2228,6 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
             detail.setQuantity(new BigDecimal(quantityObj.toString()));
             BigDecimal vatPercent = new BigDecimal(vatObj != null ? vatObj.toString() : "0");
             BigDecimal unitPrice = new BigDecimal(unitPriceObj.toString());
-            if ("99".equals(code.trim())) {
-                unitPrice = calculateNetFromGross(unitPrice, vatPercent);
-            }
             detail.setUnitPrice(unitPrice);
             detail.setDiscountPercent(new BigDecimal(discountObj != null ? discountObj.toString() : "0"));
             detail.setVatAmount(vatPercent);

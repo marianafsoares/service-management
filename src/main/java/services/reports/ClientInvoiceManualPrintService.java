@@ -87,6 +87,8 @@ public class ClientInvoiceManualPrintService {
                 ? invoice.getDetails() : Collections.emptyList();
         List<Map<String, ?>> rows = new ArrayList<>();
 
+        boolean fxInvoice = isBudgetInvoice(invoice);
+
         Client client = invoice.getClient();
         String clientName = client != null ? safeString(client.getFullName()) : "";
         String address = buildAddress(client);
@@ -105,11 +107,11 @@ public class ClientInvoiceManualPrintService {
 
         if (details.isEmpty()) {
             rows.add(buildDetailRow(null, total, formattedDate, formattedNumber, clientName, address,
-                    locality, condition, clientNumber, cuit, observations, documentType));
+                    locality, condition, clientNumber, cuit, observations, documentType, fxInvoice));
         } else {
             for (ClientInvoiceDetail detail : details) {
                 rows.add(buildDetailRow(detail, total, formattedDate, formattedNumber, clientName, address,
-                        locality, condition, clientNumber, cuit, observations, documentType));
+                        locality, condition, clientNumber, cuit, observations, documentType, fxInvoice));
             }
         }
 
@@ -118,7 +120,8 @@ public class ClientInvoiceManualPrintService {
 
     private Map<String, Object> buildDetailRow(ClientInvoiceDetail detail, String total, String formattedDate,
             String formattedNumber, String clientName, String address, String locality,
-            String condition, String clientNumber, String cuit, String observations, String documentType) {
+            String condition, String clientNumber, String cuit, String observations, String documentType,
+            boolean fxInvoice) {
 
         Map<String, Object> row = new HashMap<>();
         row.put("tipoComprobante", documentType);
@@ -139,11 +142,14 @@ public class ClientInvoiceManualPrintService {
             row.put("detalle", safeString(detail.getArticleDescription()));
             row.put("cantidad", formatQuantity(detail.getQuantity()));
             BigDecimal unitPrice = detail.getUnitPrice() != null ? detail.getUnitPrice() : BigDecimal.ZERO;
-            row.put("precio", formatAmount(unitPrice));
             BigDecimal quantity = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
             BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal() : unitPrice.multiply(quantity);
             BigDecimal vatAmount = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
             BigDecimal lineTotal = subtotal.add(vatAmount);
+            BigDecimal displayUnitPrice = fxInvoice
+                    ? calculateUnitPriceWithVat(quantity, subtotal, vatAmount)
+                    : unitPrice;
+            row.put("precio", formatAmount(displayUnitPrice));
             row.put("parcial", formatAmount(lineTotal));
             row.put("bonificacion", formatBonification(detail.getDiscountPercent()));
         } else {
@@ -156,6 +162,25 @@ public class ClientInvoiceManualPrintService {
         }
 
         return row;
+    }
+
+    private boolean isBudgetInvoice(ClientInvoice invoice) {
+        if (invoice == null || invoice.getInvoiceType() == null) {
+            return false;
+        }
+        String normalized = invoice.getInvoiceType().trim();
+        return Constants.PRESUPUESTO_ABBR.equalsIgnoreCase(normalized)
+                || Constants.PRESUPUESTO.equalsIgnoreCase(normalized);
+    }
+
+    private BigDecimal calculateUnitPriceWithVat(BigDecimal quantity, BigDecimal subtotal, BigDecimal vatAmount) {
+        BigDecimal safeSubtotal = subtotal != null ? subtotal : BigDecimal.ZERO;
+        BigDecimal safeVat = vatAmount != null ? vatAmount : BigDecimal.ZERO;
+        BigDecimal totalWithVat = safeSubtotal.add(safeVat);
+        if (quantity == null || quantity.compareTo(BigDecimal.ZERO) == 0) {
+            return totalWithVat;
+        }
+        return totalWithVat.divide(quantity, 2, RoundingMode.HALF_UP);
     }
 
     private String resolveDocumentType(ClientInvoice invoice) {
