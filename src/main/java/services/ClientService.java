@@ -170,6 +170,7 @@ public class ClientService {
                     String type = invoice.getInvoiceType();
                     if (Constants.NOTA_CREDITO_A_ABBR.equals(type)
                             || Constants.NOTA_CREDITO_B_ABBR.equals(type)
+                            || Constants.NOTA_CREDITO_C_ABBR.equals(type)
                             || Constants.NOTA_DEVOLUCION_ABBR.equals(type)) {
                         balance = balance.subtract(invoice.getTotal());
                     } else {

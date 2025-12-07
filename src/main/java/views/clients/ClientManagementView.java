@@ -853,6 +853,11 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
                 jTextFieldPhone.setText(currentClient.getPhone());
                 jTextFieldCelPhone.setText(currentClient.getMobile());
                 jTextFieldMail.setText(currentClient.getEmail());
+                if (currentClient.getSubscriptionAmount() != null) {
+                    jTextFieldSubscription.setText(currentClient.getSubscriptionAmount().toPlainString());
+                } else {
+                    jTextFieldSubscription.setText("");
+                }
                 buttonGroup1.add(jRadioButtonCuit);
                 buttonGroup1.add(jRadioButtonDni);
                 if ("CUIT".equalsIgnoreCase(currentClient.getDocumentType())) {
