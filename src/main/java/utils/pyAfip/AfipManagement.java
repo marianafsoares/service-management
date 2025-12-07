@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -395,7 +396,15 @@ public final class AfipManagement {
                 .replaceAll("\\s+", " ")
                 .trim();
 
-        return Paths.get(EXPORT_BASE_PATH, "Facturas", year, month, sanitizedName + ".pdf").toString();
+        Path exportDirectory = Paths.get(EXPORT_BASE_PATH, "Facturas", year, month);
+        try {
+            Files.createDirectories(exportDirectory);
+        } catch (IOException ex) {
+            LOGGER.log(Level.WARNING, "No se pudo crear la carpeta de exportación de facturas {0}",
+                    exportDirectory.toAbsolutePath());
+        }
+
+        return exportDirectory.resolve(sanitizedName + ".pdf").toString();
     }
 
     private static String buildClientDocumentLabel(Client client) {
