@@ -1015,12 +1015,19 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
 
     private BigDecimal calculateInvoiceSubtotal(String code, BigDecimal quantity, BigDecimal price, BigDecimal discount, BigDecimal vatPercent) {
         BigDecimal basePrice = "99".equals(code) ? calculateNetFromGross(price, vatPercent) : price;
-        BigDecimal discountFactor = discount.movePointLeft(2);
-        BigDecimal priceWithDiscount = basePrice.subtract(basePrice.multiply(discountFactor));
-        if (priceWithDiscount.compareTo(BigDecimal.ZERO) < 0) {
-            priceWithDiscount = BigDecimal.ZERO;
-        }
+        BigDecimal priceWithDiscount = applyDiscount(basePrice, discount);
         return quantity.multiply(priceWithDiscount);
+    }
+
+    private BigDecimal applyDiscount(BigDecimal basePrice, BigDecimal discountPercent) {
+        BigDecimal price = basePrice != null ? basePrice : BigDecimal.ZERO;
+        BigDecimal discount = discountPercent != null ? discountPercent : BigDecimal.ZERO;
+        BigDecimal discountFactor = discount.movePointLeft(2);
+        BigDecimal discounted = price.subtract(price.multiply(discountFactor));
+        if (discounted.compareTo(BigDecimal.ZERO) < 0) {
+            return BigDecimal.ZERO;
+        }
+        return discounted;
     }
 
     private static final BigDecimal SUBTOTAL_TOLERANCE = new BigDecimal("0.01");
@@ -1036,7 +1043,9 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
     private boolean isSubtotalWithinTolerance(BigDecimal expected, BigDecimal actual) {
         BigDecimal normalizedExpected = normalize(expected);
         BigDecimal normalizedActual = normalize(actual);
-        BigDecimal difference = normalizedExpected.subtract(normalizedActual).abs();
+        BigDecimal roundedExpected = normalizedExpected.setScale(DISPLAY_SCALE, DISPLAY_ROUNDING_MODE);
+        BigDecimal roundedActual = normalizedActual.setScale(DISPLAY_SCALE, DISPLAY_ROUNDING_MODE);
+        BigDecimal difference = roundedExpected.subtract(roundedActual).abs();
         return difference.compareTo(SUBTOTAL_TOLERANCE) <= 0;
     }
 
@@ -2568,6 +2577,13 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
 
             BigDecimal expectedSubtotal = calculateInvoiceSubtotal(code, quantity, price, discount, vatPercent);
             if (!isSubtotalWithinTolerance(expectedSubtotal, subtotal)) {
+                if ("99".equals(code)) {
+                    BigDecimal alternativeSubtotal = quantity.multiply(applyDiscount(price, discount));
+                    if (isSubtotalWithinTolerance(alternativeSubtotal, subtotal)) {
+                        continue;
+                    }
+                }
+
                 String message = "No coincide subtotal! Fila: " + (i + 1);
                 logInvoiceWarning(message);
                 JOptionPane.showMessageDialog(this, message, "Atencion", JOptionPane.WARNING_MESSAGE);
