@@ -243,18 +243,31 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
                 continue;
             }
             String normalizedName = normalizeBankKey(bank.getName());
-            if (normalizedAccounts.containsKey(normalizedName)) {
+            String accountNumber = findConfiguredAccount(normalizedAccounts, normalizedName);
+            if (accountNumber != null) {
                 jComboBoxDestinationBank.addItem(new ComboBoxItem<>(bank.getId(), bank.getName()));
-                accountsByBankId.put(bank.getId(), normalizedAccounts.get(normalizedName));
+                accountsByBankId.put(bank.getId(), accountNumber);
             }
         }
 
-        if (accountsByBankId.isEmpty()) {
+        if (normalizedAccounts.isEmpty()) {
             ReceiptUtils.loadBanks(jComboBoxDestinationBank, bankController);
             transferDestinationAccounts = Collections.emptyMap();
         } else {
             transferDestinationAccounts = accountsByBankId;
         }
+    }
+
+    private String findConfiguredAccount(Map<String, String> normalizedAccounts, String normalizedName) {
+        if (normalizedAccounts.isEmpty()) {
+            return null;
+        }
+        return normalizedAccounts.entrySet()
+                .stream()
+                .filter(entry -> normalizedName.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
     }
 
     private void updateDestinationAccountFromBank() {
