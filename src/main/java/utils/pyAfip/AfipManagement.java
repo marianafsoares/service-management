@@ -484,12 +484,13 @@ public final class AfipManagement {
                         .add(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO)), 2);
         BigDecimal impTrib = BigDecimal.ZERO;
 
-        BigDecimal impTotal;
+        BigDecimal totalAmount = truncateAmount(Optional.ofNullable(invoice.getTotal()).orElse(impNeto.add(impIva)), 2);
+        BigDecimal impTotal = totalAmount;
         if (isInvoiceTypeC) {
             // Para comprobantes tipo C AFIP exige que ImpTotal sea igual a ImpNeto + ImpTrib
-            impTotal = impNeto.add(impTrib);
-        } else {
-            impTotal = truncateAmount(Optional.ofNullable(invoice.getTotal()).orElse(impNeto.add(impIva)), 2);
+            BigDecimal finalAmount = totalAmount.compareTo(BigDecimal.ZERO) > 0 ? totalAmount : impNeto;
+            impNeto = finalAmount;
+            impTotal = finalAmount.add(impTrib);
         }
 
         pw.print(formatAmount(impTotal, 13, 2));
@@ -667,11 +668,15 @@ public final class AfipManagement {
             subtotalFinal = subtotalFinal
                     .add(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO))
                     .add(Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO));
+        } else if (isTypeCInvoice(tipo)) {
+            subtotalFinal = Optional.ofNullable(invoice.getTotal()).orElse(subtotalFinal);
         }
         pw.print(formatAmount(truncateAmount(subtotalFinal, 3), 12, 3));
 
-        BigDecimal ivaSum = Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO)
-                .add(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO));
+        BigDecimal ivaSum = isTypeCInvoice(tipo)
+                ? BigDecimal.ZERO
+                : Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO)
+                        .add(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO));
         pw.print(formatAmount(truncateAmount(ivaSum, 3), 12, 3));
 
         for (int i = 0; i < 7; i++) {

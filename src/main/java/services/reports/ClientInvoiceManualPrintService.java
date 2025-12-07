@@ -145,10 +145,17 @@ public class ClientInvoiceManualPrintService {
             BigDecimal quantity = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
             BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal() : unitPrice.multiply(quantity);
             BigDecimal vatAmount = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
-            BigDecimal lineTotal = subtotal.add(vatAmount);
-            BigDecimal displayUnitPrice = vatInclusiveInvoice
-                    ? calculateUnitPriceWithVat(quantity, subtotal, vatAmount)
-                    : unitPrice;
+            BigDecimal displayUnitPrice;
+            BigDecimal lineTotal;
+
+            if (vatInclusiveInvoice) {
+                displayUnitPrice = unitPrice;
+                lineTotal = unitPrice.multiply(quantity);
+            } else {
+                lineTotal = subtotal.add(vatAmount);
+                displayUnitPrice = unitPrice;
+            }
+
             row.put("precio", formatAmount(displayUnitPrice));
             row.put("parcial", formatAmount(lineTotal));
             row.put("bonificacion", formatBonification(detail.getDiscountPercent()));

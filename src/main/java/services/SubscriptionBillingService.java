@@ -122,8 +122,8 @@ public class SubscriptionBillingService {
         invoice.setInvoiceNumber(invoiceNumber.isBlank() ? "1" : invoiceNumber);
         invoice.setIssuerCuit(resolveIssuerCuit());
         boolean vatInclusiveInvoice = InvoiceTypeUtils.isVatInclusive(invoiceType);
-        BigDecimal netAmount = vatInclusiveInvoice ? amount : amount;
-        BigDecimal vatAmount = vatInclusiveInvoice ? BigDecimal.ZERO : BigDecimal.ZERO;
+        BigDecimal netAmount = vatInclusiveInvoice ? amount : calculateNetAmount(amount);
+        BigDecimal vatAmount = vatInclusiveInvoice ? BigDecimal.ZERO : amount.subtract(netAmount);
 
         invoice.setSubtotal(netAmount);
         invoice.setVat21(vatAmount);
