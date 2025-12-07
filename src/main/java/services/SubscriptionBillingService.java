@@ -308,13 +308,6 @@ public class SubscriptionBillingService {
         invoice.setDetails(Collections.singletonList(detail));
     }
 
-    private BigDecimal calculateNetAmount(BigDecimal totalAmount) {
-        if (totalAmount == null) {
-            return BigDecimal.ZERO;
-        }
-        return totalAmount.divide(BigDecimal.valueOf(1.21), 2, java.math.RoundingMode.HALF_UP);
-    }
-
     private String formatInvoiceDisplay(ClientInvoice invoice) {
         if (invoice == null) {
             return "";
