@@ -333,14 +333,14 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 .append("</p>");
 
         if (safePrevBalance.compareTo(BigDecimal.ZERO) != 0) {
-            body.append("<p><strong>Saldo anterior: $")
+            body.append("<p><strong style=\"color:#cc0000;\">Saldo anterior: $")
                     .append(currencyFormat.format(safePrevBalance))
                     .append("</strong></p>");
         }
         if (safePrevBalance.compareTo(BigDecimal.ZERO) > 0) {
-            body.append("<p>Tenías un saldo deudor. Con esta factura tu nuevo saldo es de $")
+            body.append("<p><strong>Tenías un saldo deudor. Con esta factura tu nuevo saldo es de $")
                     .append(currencyFormat.format(newBalance))
-                    .append(".</p>");
+                    .append(".</strong></p>");
         }
 
         body.append("<p>Adjuntamos los datos para el pago en un PDF separado.</p>")
