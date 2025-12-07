@@ -73,9 +73,9 @@ public class SubscriptionBillingService {
         if (defaultInvoiceType != null && !defaultInvoiceType.isBlank()) {
             return defaultInvoiceType.trim();
         }
-        String configured = AppConfig.get("subscription.invoice.type.default", Constants.FACTURA_C_ABBR);
+        String configured = AppConfig.get("subscription.invoice.type.default", Constants.FACTURA_A_ABBR);
         if (configured == null || configured.isBlank()) {
-            return Constants.FACTURA_C_ABBR;
+            return Constants.FACTURA_A_ABBR;
         }
         return configured.trim();
     }
@@ -113,11 +113,9 @@ public class SubscriptionBillingService {
         ClientInvoice invoice = new ClientInvoice();
         invoice.setClient(client);
         invoice.setInvoiceDate(billingDate != null ? billingDate.atStartOfDay() : LocalDateTime.now());
-        invoice.setInvoiceType(resolveInvoiceType(client, defaultInvoiceType));
-        String pointOfSale = sanitizeDigits(AppConfig.get("pos.default", "0"));
-        if (pointOfSale.isBlank()) {
-            pointOfSale = "0";
-        }
+        String invoiceType = resolveInvoiceType(client, defaultInvoiceType);
+        invoice.setInvoiceType(invoiceType);
+        String pointOfSale = resolvePointOfSale(client, invoiceType);
         invoice.setPointOfSale(pointOfSale);
         String invoiceNumber = sanitizeDigits(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
         invoice.setInvoiceNumber(invoiceNumber.isBlank() ? "1" : invoiceNumber);
@@ -313,6 +311,21 @@ public class SubscriptionBillingService {
         String formattedPos = leftPad(posDigits, 4);
         String formattedNumber = leftPad(numberDigits, 8);
         return formattedPos + "-" + formattedNumber;
+    }
+
+    private String resolvePointOfSale(Client client, String invoiceType) {
+        String type = invoiceType == null ? "" : invoiceType.trim();
+        boolean fxInvoice = Constants.PRESUPUESTO_ABBR.equalsIgnoreCase(type)
+                || Constants.PRESUPUESTO.equalsIgnoreCase(type)
+                || (client != null && client.isFxBilling());
+        if (fxInvoice) {
+            return "0";
+        }
+        String configured = sanitizeDigits(AppConfig.get("pos.default", "1"));
+        if (configured == null || configured.isBlank()) {
+            return "1";
+        }
+        return configured;
     }
 
     private String sanitizeDigits(String value) {

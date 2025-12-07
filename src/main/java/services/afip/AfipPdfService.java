@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import models.ClientInvoice;
+import models.Client;
 import utils.DocumentValidator;
 import utils.InvoiceTypeUtils;
 import utils.pyAfip.AfipManagement;
@@ -30,8 +31,9 @@ import services.reports.ManualInvoicePrintException;
  */
 public class AfipPdfService {
 
-    private static final String INVOICE_ROOT_FOLDER = "facturas";
-    private static final DateTimeFormatter INVOICE_PERIOD_FORMAT = DateTimeFormatter.ofPattern("yyyyMM");
+    private static final String INVOICE_ROOT_FOLDER = "Facturas";
+    private static final DateTimeFormatter INVOICE_YEAR_FORMAT = DateTimeFormatter.ofPattern("yyyy");
+    private static final DateTimeFormatter INVOICE_MONTH_FORMAT = DateTimeFormatter.ofPattern("MM");
 
     private final List<String> overrideCommand;
     private final AfipCommandResolver commandResolver;
@@ -284,29 +286,41 @@ public class AfipPdfService {
     }
 
     private String buildPdfFileName(ClientInvoice invoice) {
-        return "factura" + Optional.ofNullable(invoice.getPointOfSale()).orElse("")
-                + Optional.ofNullable(invoice.getInvoiceNumber()).orElse("") + ".pdf";
-    }
+        Client client = invoice.getClient();
+        String invoiceAbbreviation = InvoiceTypeUtils.toAbbreviation(invoice.getInvoiceType());
+        if (invoiceAbbreviation == null || invoiceAbbreviation.isBlank()) {
+            invoiceAbbreviation = "Factura";
+        }
 
-    private String resolveInvoicePeriod(LocalDateTime invoiceDate) {
-        LocalDateTime dateTime = invoiceDate != null ? invoiceDate : LocalDateTime.now();
-        return dateTime.format(INVOICE_PERIOD_FORMAT);
+        String formattedPointOfSale = padLeft(Optional.ofNullable(invoice.getPointOfSale()).orElse(""), 4);
+        String formattedInvoiceNumber = padLeft(Optional.ofNullable(invoice.getInvoiceNumber()).orElse(""), 8);
+
+        String clientName = client != null ? Optional.ofNullable(client.getFullName()).orElse("") : "";
+        String clientDocument = buildClientDocumentLabel(client);
+
+        StringBuilder fileNameBuilder = new StringBuilder();
+        fileNameBuilder.append(invoiceAbbreviation.trim());
+        fileNameBuilder.append(' ').append(formattedPointOfSale).append('-').append(formattedInvoiceNumber);
+        if (!clientName.isBlank()) {
+            fileNameBuilder.append(' ').append(clientName.trim());
+        }
+        if (!clientDocument.isBlank()) {
+            fileNameBuilder.append(' ').append(clientDocument);
+        }
+
+        String sanitizedName = fileNameBuilder.toString().replaceAll("[\\\\/:*?\\\"<>|]", " ").replaceAll("\\s+", " ").trim();
+        return sanitizedName + ".pdf";
     }
 
     private Path resolveExportDirectory(ClientInvoice invoice) {
-        String normalizedCuit = DocumentValidator.normalizeCuit(invoice.getIssuerCuit());
-        if (normalizedCuit == null || normalizedCuit.isBlank()) {
-            normalizedCuit = "sin-cuit";
-        }
-
-        String period = resolveInvoicePeriod(invoice.getInvoiceDate());
+        LocalDateTime invoiceDate = invoice.getInvoiceDate() != null ? invoice.getInvoiceDate() : LocalDateTime.now();
+        String year = invoiceDate.format(INVOICE_YEAR_FORMAT);
+        String month = invoiceDate.format(INVOICE_MONTH_FORMAT);
 
         Path exportDirectory = Paths.get(AfipManagement.EXPORT_BASE_PATH)
                 .resolve(INVOICE_ROOT_FOLDER)
-                .resolve(normalizedCuit);
-        if (!period.isBlank()) {
-            exportDirectory = exportDirectory.resolve(period);
-        }
+                .resolve(year)
+                .resolve(month);
 
         try {
             Files.createDirectories(exportDirectory);
@@ -324,5 +338,43 @@ public class AfipPdfService {
         Path target = exportDirectory.resolve(buildPdfFileName(invoice));
         manualPrintService.exportBudgetPdf(invoice, target.toString());
         return target.toFile();
+    }
+
+    private String buildClientDocumentLabel(Client client) {
+        if (client == null) {
+            return "";
+        }
+
+        String documentType = Optional.ofNullable(client.getDocumentType()).orElse("").trim();
+        String documentNumber = Optional.ofNullable(DocumentValidator.normalizeCuit(client.getDocumentNumber()))
+                .orElse("").trim();
+
+        if (documentType.isEmpty() && documentNumber.isEmpty()) {
+            return "";
+        }
+
+        if (documentType.isEmpty()) {
+            return documentNumber;
+        }
+
+        if (documentNumber.isEmpty()) {
+            return documentType;
+        }
+
+        return documentType + " " + documentNumber;
+    }
+
+    private String padLeft(String value, int length) {
+        if (value == null) {
+            value = "";
+        }
+        if (value.length() >= length) {
+            return value;
+        }
+        StringBuilder builder = new StringBuilder(length);
+        for (int i = value.length(); i < length; i++) {
+            builder.append('0');
+        }
+        return builder.append(value).toString();
     }
 }
