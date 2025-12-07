@@ -378,14 +378,24 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
         jComboBoxTipoCompro.setEnabled(true);
         jComboBoxPtoVenta.setEnabled(true);
 
-        if (client.getTaxCondition() != null
-                && "RESPONSABLE INSCRIPTO".equals(client.getTaxCondition().getName())) {
-            jComboBoxTipoCompro.setSelectedItem("Factura A");
-            jComboBoxPtoVenta.setSelectedItem("0003");
-        } else {
-            jComboBoxTipoCompro.setSelectedItem("Factura B");
-            jComboBoxPtoVenta.setSelectedItem("0003");
+        String configuredDefault = AppConfig.get("subscription.invoice.type.default", Constants.FACTURA_A_ABBR);
+        String normalizedDefault = InvoiceTypeUtils.toStorageValue(
+                InvoiceTypeUtils.toAbbreviation(configuredDefault != null ? configuredDefault.trim() : ""));
+        if (normalizedDefault.isEmpty()) {
+            normalizedDefault = Constants.FACTURA_A_ABBR;
         }
+
+        boolean defaultApplied = selectInvoiceTypeByNormalizedValue(normalizedDefault);
+        if (!defaultApplied) {
+            if (client.getTaxCondition() != null
+                    && "RESPONSABLE INSCRIPTO".equals(client.getTaxCondition().getName())) {
+                jComboBoxTipoCompro.setSelectedItem("Factura A");
+            } else {
+                jComboBoxTipoCompro.setSelectedItem("Factura B");
+            }
+        }
+
+        jComboBoxPtoVenta.setSelectedItem("0003");
     }
 
     private void clearClientInfo() {
