@@ -26,21 +26,21 @@
         <title>
                 <band height="83" splitType="Stretch">
                         <staticText>
-                                <reportElement x="380" y="5" width="175" height="24" uuid="52642f83-ba95-4cad-ba9d-ef0598a0ce89"/>
-                                <textElement textAlignment="Center" textAdjust="ScaleFont">
+                                <reportElement x="360" y="5" width="175" height="24" uuid="52642f83-ba95-4cad-ba9d-ef0598a0ce89"/>
+                                <textElement textAlignment="Center">
                                         <font fontName="Calibri" size="16" isBold="true"/>
                                 </textElement>
                                 <text><![CDATA[RECIBO DE]]></text>
                         </staticText>
                         <staticText>
-                                <reportElement x="411" y="34" width="22" height="20" uuid="f8d5ace1-6ddb-40c2-b856-c57091985ed9"/>
+                                <reportElement x="390" y="34" width="22" height="20" uuid="f8d5ace1-6ddb-40c2-b856-c57091985ed9"/>
                                 <textElement>
                                         <font fontName="Calibri" size="12"/>
                                 </textElement>
                                 <text><![CDATA[Nº]]></text>
                         </staticText>
                         <textField>
-                                <reportElement x="433" y="34" width="122" height="20" uuid="bd6cdc54-5f92-42b8-80a1-2e1d85c181ba"/>
+                                <reportElement x="412" y="34" width="122" height="20" uuid="bd6cdc54-5f92-42b8-80a1-2e1d85c181ba"/>
                                 <textElement>
                                         <font fontName="Calibri" size="12"/>
                                 </textElement>
@@ -51,7 +51,7 @@
 				<imageExpression><![CDATA[$P{Logo}]]></imageExpression>
 			</image>
                         <textField>
-                                <reportElement x="433" y="59" width="110" height="20" uuid="5fb5b991-af82-49a3-bf98-6d92c4de6638"/>
+                                <reportElement x="412" y="59" width="120" height="20" uuid="5fb5b991-af82-49a3-bf98-6d92c4de6638"/>
                                 <textElement textAlignment="Center">
                                         <font fontName="Calibri" size="12"/>
                                 </textElement>
