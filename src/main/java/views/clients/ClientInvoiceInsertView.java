@@ -2222,9 +2222,8 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
             Object unitPriceObj = jTable1.getValueAt(i, 3);
             Object discountObj = jTable1.getValueAt(i, 4);
             Object vatObj = jTable1.getValueAt(i, 5);
-            Object subtotalObj = jTable1.getValueAt(i, 6);
 
-            if (codeObj == null || quantityObj == null || unitPriceObj == null || subtotalObj == null) {
+            if (codeObj == null || quantityObj == null || unitPriceObj == null) {
                 continue;
             }
 
@@ -2245,23 +2244,23 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
             BigDecimal vatPercent = new BigDecimal(vatObj != null ? vatObj.toString() : "0");
 
             BigDecimal unitPrice = new BigDecimal(unitPriceObj.toString());
-            BigDecimal priceWithDiscount = applyDiscount(unitPrice, discountPercent);
-            BigDecimal subtotal = new BigDecimal(subtotalObj.toString());
+            BigDecimal priceWithDiscount = applyDiscount(unitPrice, discountPercent).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal baseSubtotal = priceWithDiscount.multiply(quantity).setScale(2, RoundingMode.HALF_UP);
             BigDecimal vatRate = vatPercent.movePointLeft(2);
-            BigDecimal vatAmount = subtotal.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal vatAmount = baseSubtotal.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);
 
             if (vatInclusiveInvoice) {
-                BigDecimal subtotalWithVat = subtotal.add(vatAmount);
+                BigDecimal subtotalWithVat = baseSubtotal.add(vatAmount);
                 BigDecimal unitPriceWithVat = quantity.compareTo(BigDecimal.ZERO) == 0
                         ? priceWithDiscount
                         : subtotalWithVat.divide(quantity, 2, RoundingMode.HALF_UP);
                 detail.setUnitPrice(unitPriceWithVat);
-                detail.setVatAmount(BigDecimal.ZERO);
+                detail.setVatAmount(vatAmount);
                 detail.setSubtotal(subtotalWithVat);
             } else {
                 detail.setUnitPrice(priceWithDiscount);
                 detail.setVatAmount(vatAmount);
-                detail.setSubtotal(subtotal);
+                detail.setSubtotal(baseSubtotal);
             }
 
             details.add(detail);
