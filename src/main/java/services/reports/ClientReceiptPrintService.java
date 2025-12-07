@@ -9,6 +9,7 @@ import models.receipts.ReceiptRetention;
 import models.receipts.ReceiptTransfer;
 import models.receipts.ClientReceipt;
 import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
@@ -17,8 +18,11 @@ import net.sf.jasperreports.view.JasperViewer;
 import utils.DocumentValidator;
 import utils.JasperViewerUtils;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +42,28 @@ public class ClientReceiptPrintService {
     private static final String DOCUMENT_TITLE = "Recibo de Cobro";
 
     public void print(ClientReceipt receipt, Client client, ReceiptDetailData detailData) throws ReceiptPrintException {
+        JasperPrint jasperPrint = buildReport(receipt, client, detailData);
+        JasperViewerUtils.showViewer(new JasperViewer(jasperPrint, false), DOCUMENT_TITLE);
+    }
+
+    public File exportPdf(ClientReceipt receipt, Client client, ReceiptDetailData detailData) throws ReceiptPrintException {
+        return exportPdf(receipt, client, detailData, null);
+    }
+
+    public File exportPdf(ClientReceipt receipt, Client client, ReceiptDetailData detailData, Path outputPath)
+            throws ReceiptPrintException {
+        JasperPrint jasperPrint = buildReport(receipt, client, detailData);
+        try {
+            Path target = outputPath != null ? outputPath : Files.createTempFile("recibo-", ".pdf");
+            JasperExportManager.exportReportToPdfFile(jasperPrint, target.toString());
+            return target.toFile();
+        } catch (Exception ex) {
+            throw new ReceiptPrintException("No se pudo exportar el recibo", ex);
+        }
+    }
+
+    private JasperPrint buildReport(ClientReceipt receipt, Client client, ReceiptDetailData detailData)
+            throws ReceiptPrintException {
         if (receipt == null || receipt.getId() == null) {
             throw new ReceiptPrintException("No se encontró el recibo a imprimir");
         }
@@ -53,8 +79,7 @@ public class ClientReceiptPrintService {
         try {
             JasperReport report = JasperReportFactory.loadReport(REPORT_RESOURCE);
             Map<String, Object> parameters = new HashMap<>(ReportParameterFactory.createBaseParameters(receipt.getIssuerCuit()));
-            JasperPrint jasperPrint = JasperFillManager.fillReport(report, parameters, new JRMapCollectionDataSource(data));
-            JasperViewerUtils.showViewer(new JasperViewer(jasperPrint, false), DOCUMENT_TITLE);
+            return JasperFillManager.fillReport(report, parameters, new JRMapCollectionDataSource(data));
         } catch (JRException ex) {
             throw new ReceiptPrintException("No se pudo generar el recibo", ex);
         }

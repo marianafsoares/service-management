@@ -860,6 +860,7 @@ public class ClientManagementView extends javax.swing.JInternalFrame {
                 } else {
                     jRadioButtonDni.setSelected(true);
                 }
+                jCheckBoxFxBilling.setSelected(currentClient.isFxBilling());
                 jCheckBoxActive.setSelected(currentClient.isActive());
             } else {
                 jCheckBoxActive.setSelected(true);
