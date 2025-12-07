@@ -81,7 +81,7 @@
                 </band>
         </title>
         <pageHeader>
-                <band height="130" splitType="Stretch">
+                <band height="140" splitType="Stretch">
                         <rectangle>
                                 <reportElement x="0" y="10" width="555" height="91" uuid="ba47e7bd-70e3-4caf-9ad9-f72ed62235f5"/>
                         </rectangle>
