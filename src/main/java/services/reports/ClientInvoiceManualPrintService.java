@@ -149,8 +149,8 @@ public class ClientInvoiceManualPrintService {
             BigDecimal lineTotal;
 
             if (vatInclusiveInvoice) {
-                displayUnitPrice = unitPrice;
-                lineTotal = unitPrice.multiply(quantity);
+                lineTotal = subtotal.add(vatAmount);
+                displayUnitPrice = calculateUnitPriceWithVat(quantity, subtotal, vatAmount);
             } else {
                 lineTotal = subtotal.add(vatAmount);
                 displayUnitPrice = unitPrice;

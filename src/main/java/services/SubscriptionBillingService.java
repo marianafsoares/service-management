@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.math.RoundingMode;
 import models.Client;
 import models.ClientInvoice;
 import models.ClientInvoiceDetail;
@@ -27,6 +28,8 @@ import utils.InvoiceTypeUtils;
 public class SubscriptionBillingService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DecimalFormat AMOUNT_FORMATTER = new DecimalFormat("0.00");
+    private static final BigDecimal VAT_RATE_21 = new BigDecimal("0.21");
+    private static final int MONEY_SCALE = 2;
 
     private final ClientRepository clientRepository;
     private final ClientInvoiceRepository clientInvoiceRepository;
@@ -133,8 +136,16 @@ public class SubscriptionBillingService {
                 : description.trim());
         invoice.setPaymentMethod("Cuenta corriente");
         clientInvoiceRepository.insert(invoice);
-        persistDetail(invoice, netAmount, vatAmount, description);
+        persistDetail(invoice, netAmount, vatAmount, amount, vatInclusiveInvoice, description);
         return invoice;
+    }
+
+    private BigDecimal calculateNetAmount(BigDecimal amount) {
+        if (amount == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal divisor = BigDecimal.ONE.add(VAT_RATE_21);
+        return amount.divide(divisor, MONEY_SCALE, RoundingMode.HALF_UP);
     }
 
     public List<AccountStatementLine> buildStatementSinceLastZero(Integer clientId) {
@@ -287,7 +298,8 @@ public class SubscriptionBillingService {
         }
     }
 
-    private void persistDetail(ClientInvoice invoice, BigDecimal netAmount, BigDecimal vatAmount, String description) {
+    private void persistDetail(ClientInvoice invoice, BigDecimal netAmount, BigDecimal vatAmount, BigDecimal total,
+            boolean vatInclusiveInvoice, String description) {
         if (invoice == null || invoice.getId() == null) {
             return;
         }
@@ -299,10 +311,12 @@ public class SubscriptionBillingService {
                 ? "Abono mensual del servicio"
                 : description.trim());
         detail.setQuantity(BigDecimal.ONE);
-        detail.setUnitPrice(netAmount);
+        BigDecimal unitPrice = vatInclusiveInvoice ? total : netAmount;
+
+        detail.setUnitPrice(unitPrice);
         detail.setDiscountPercent(BigDecimal.ZERO);
         detail.setVatAmount(vatAmount);
-        detail.setSubtotal(netAmount);
+        detail.setSubtotal(unitPrice);
 
         clientInvoiceDetailRepository.insert(detail);
         invoice.setDetails(Collections.singletonList(detail));
