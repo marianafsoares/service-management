@@ -200,6 +200,7 @@ public class ClientHistoryView extends javax.swing.JInternalFrame {
             }
             if (Constants.NOTA_CREDITO_A_ABBR.equals(item.type)
                     || Constants.NOTA_CREDITO_B_ABBR.equals(item.type)
+                    || Constants.NOTA_CREDITO_C_ABBR.equals(item.type)
                     || Constants.NOTA_DEVOLUCION_ABBR.equals(item.type)
                     || Constants.RECIBO_ABBR.equals(item.type)) {
                 currentBalance = currentBalance.subtract(item.total);
