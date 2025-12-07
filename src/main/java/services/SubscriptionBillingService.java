@@ -121,14 +121,20 @@ public class SubscriptionBillingService {
         String invoiceNumber = sanitizeDigits(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
         invoice.setInvoiceNumber(invoiceNumber.isBlank() ? "1" : invoiceNumber);
         invoice.setIssuerCuit(resolveIssuerCuit());
-        invoice.setSubtotal(amount);
+        boolean fxInvoice = Constants.PRESUPUESTO_ABBR.equalsIgnoreCase(invoiceType)
+                || Constants.PRESUPUESTO.equalsIgnoreCase(invoiceType);
+        BigDecimal netAmount = fxInvoice ? calculateNetAmount(amount) : amount;
+        BigDecimal vatAmount = fxInvoice ? amount.subtract(netAmount) : BigDecimal.ZERO;
+
+        invoice.setSubtotal(netAmount);
+        invoice.setVat21(vatAmount);
         invoice.setTotal(amount);
         invoice.setDescription(description == null || description.isBlank()
                 ? "Abono mensual del servicio"
                 : description.trim());
         invoice.setPaymentMethod("Cuenta corriente");
         clientInvoiceRepository.insert(invoice);
-        persistDetail(invoice, amount, description);
+        persistDetail(invoice, netAmount, vatAmount, description);
         return invoice;
     }
 
@@ -282,7 +288,7 @@ public class SubscriptionBillingService {
         }
     }
 
-    private void persistDetail(ClientInvoice invoice, BigDecimal amount, String description) {
+    private void persistDetail(ClientInvoice invoice, BigDecimal netAmount, BigDecimal vatAmount, String description) {
         if (invoice == null || invoice.getId() == null) {
             return;
         }
@@ -294,13 +300,20 @@ public class SubscriptionBillingService {
                 ? "Abono mensual del servicio"
                 : description.trim());
         detail.setQuantity(BigDecimal.ONE);
-        detail.setUnitPrice(amount);
+        detail.setUnitPrice(netAmount);
         detail.setDiscountPercent(BigDecimal.ZERO);
-        detail.setVatAmount(BigDecimal.ZERO);
-        detail.setSubtotal(amount);
+        detail.setVatAmount(vatAmount);
+        detail.setSubtotal(netAmount);
 
         clientInvoiceDetailRepository.insert(detail);
         invoice.setDetails(Collections.singletonList(detail));
+    }
+
+    private BigDecimal calculateNetAmount(BigDecimal totalAmount) {
+        if (totalAmount == null) {
+            return BigDecimal.ZERO;
+        }
+        return totalAmount.divide(BigDecimal.valueOf(1.21), 2, java.math.RoundingMode.HALF_UP);
     }
 
     private String formatInvoiceDisplay(ClientInvoice invoice) {

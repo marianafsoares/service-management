@@ -140,9 +140,11 @@ public class ClientInvoiceManualPrintService {
             row.put("cantidad", formatQuantity(detail.getQuantity()));
             BigDecimal unitPrice = detail.getUnitPrice() != null ? detail.getUnitPrice() : BigDecimal.ZERO;
             row.put("precio", formatAmount(unitPrice));
-            BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal()
-                    : unitPrice.multiply(detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO);
-            row.put("parcial", formatAmount(subtotal));
+            BigDecimal quantity = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
+            BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal() : unitPrice.multiply(quantity);
+            BigDecimal vatAmount = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
+            BigDecimal lineTotal = subtotal.add(vatAmount);
+            row.put("parcial", formatAmount(lineTotal));
             row.put("bonificacion", formatBonification(detail.getDiscountPercent()));
         } else {
             row.put("codArticulo", "");
