@@ -1,6 +1,8 @@
 package services;
 
 import configs.AppConfig;
+import java.io.File;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -11,8 +13,12 @@ import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import javax.activation.DataHandler;
+import javax.activation.FileDataSource;
 
 public class EmailService {
     private static final Logger LOGGER = Logger.getLogger(EmailService.class.getName());
@@ -26,6 +32,10 @@ public class EmailService {
     }
 
     public boolean sendEmail(String to, String subject, String body) {
+        return sendEmail(to, subject, body, null, false);
+    }
+
+    public boolean sendEmail(String to, String subject, String body, List<File> attachments, boolean htmlBody) {
         if (session == null || from == null || from.isBlank() || to == null || to.isBlank()) {
             return false;
         }
@@ -34,7 +44,31 @@ public class EmailService {
             message.setFrom(new InternetAddress(from));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
             message.setSubject(subject);
-            message.setText(body);
+
+            MimeBodyPart bodyPart = new MimeBodyPart();
+            if (htmlBody) {
+                bodyPart.setContent(body, "text/html; charset=UTF-8");
+            } else {
+                bodyPart.setText(body, "UTF-8");
+            }
+
+            if (attachments == null || attachments.isEmpty()) {
+                message.setContent(bodyPart.getContent(), bodyPart.getContentType());
+            } else {
+                MimeMultipart multipart = new MimeMultipart();
+                multipart.addBodyPart(bodyPart);
+                for (File attachment : attachments) {
+                    if (attachment == null || !attachment.exists()) {
+                        continue;
+                    }
+                    MimeBodyPart attachmentPart = new MimeBodyPart();
+                    attachmentPart.setDataHandler(new DataHandler(new FileDataSource(attachment)));
+                    attachmentPart.setFileName(attachment.getName());
+                    multipart.addBodyPart(attachmentPart);
+                }
+                message.setContent(multipart);
+            }
+
             Transport.send(message);
             return true;
         } catch (AuthenticationFailedException ex) {
