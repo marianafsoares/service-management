@@ -220,6 +220,18 @@ public final class InvoiceTypeUtils {
         if (normalized.isEmpty()) {
             return "";
         }
+        if (normalized.length() == 1) {
+            switch (normalized) {
+                case "a":
+                    return Constants.FACTURA_A_ABBR;
+                case "b":
+                    return Constants.FACTURA_B_ABBR;
+                case "c":
+                    return Constants.FACTURA_C_ABBR;
+                default:
+                    return value;
+            }
+        }
         return ABBREVIATION_VALUES.getOrDefault(normalized, value);
     }
 
