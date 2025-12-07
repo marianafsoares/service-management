@@ -114,7 +114,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
     private Map<String, String> pointOfSaleIssuerCuits = Collections.emptyMap();
     private Map<String, String> pointOfSaleDescriptions = Collections.emptyMap();
     private Map<Integer, String> transferDestinationAccounts = Collections.emptyMap();
-    private final String defaultOriginAccount = AppConfig.get("transfer.origin.default.account", "00000000000000000000");
+    private final String configuredDefaultOriginAccount = AppConfig.get("transfer.origin.default.account", "00000000000000000000");
 
     public ClientReceiptInsertView() throws Exception {
         sqlSession = MyBatisConfig.getSqlSessionFactory().openSession(true);
@@ -220,9 +220,9 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         ReceiptUtils.loadBanks(jComboBoxOriginBank, bankController);
         loadDestinationBanks();
         jComboBoxBank.setSelectedIndex(0);
-        jComboBoxOriginBank.setSelectedIndex(0);
+        selectDefaultOriginBank();
         jComboBoxDestinationBank.setSelectedIndex(0);
-        jTextFieldOriginAccount.setText(defaultOriginAccount);
+        applyDefaultOriginAccount();
     }
 
     private void loadDestinationBanks() {
@@ -243,18 +243,119 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
                 continue;
             }
             String normalizedName = normalizeBankKey(bank.getName());
-            if (normalizedAccounts.containsKey(normalizedName)) {
+            String accountNumber = findConfiguredAccount(normalizedAccounts, normalizedName);
+            if (accountNumber != null) {
                 jComboBoxDestinationBank.addItem(new ComboBoxItem<>(bank.getId(), bank.getName()));
-                accountsByBankId.put(bank.getId(), normalizedAccounts.get(normalizedName));
+                accountsByBankId.put(bank.getId(), accountNumber);
             }
         }
 
-        if (accountsByBankId.isEmpty()) {
+        if (normalizedAccounts.isEmpty()) {
             ReceiptUtils.loadBanks(jComboBoxDestinationBank, bankController);
             transferDestinationAccounts = Collections.emptyMap();
         } else {
             transferDestinationAccounts = accountsByBankId;
         }
+    }
+
+    private void selectDefaultOriginBank() {
+        Integer preferredIndex = findFirstConfiguredOriginBankIndex();
+        if (preferredIndex != null) {
+            jComboBoxOriginBank.setSelectedIndex(preferredIndex);
+        } else if (jComboBoxOriginBank.getItemCount() > 1) {
+            jComboBoxOriginBank.setSelectedIndex(1);
+        } else {
+            jComboBoxOriginBank.setSelectedIndex(0);
+        }
+    }
+
+    private Integer findFirstConfiguredOriginBankIndex() {
+        if (transferDestinationAccounts == null || transferDestinationAccounts.isEmpty()) {
+            return null;
+        }
+        for (int idx = 1; idx < jComboBoxOriginBank.getItemCount(); idx++) {
+            ComboBoxItem<Integer> item = getComboItemAt(jComboBoxOriginBank, idx);
+            if (item != null && transferDestinationAccounts.containsKey(item.getValue())) {
+                return idx;
+            }
+        }
+        return null;
+    }
+
+    private void applyDefaultOriginAccount() {
+        ComboBoxItem<Integer> originBankItem = getSelectedComboItem(jComboBoxOriginBank);
+        jTextFieldOriginAccount.setText(getDefaultOriginAccount(originBankItem != null ? originBankItem.getValue() : null));
+    }
+
+    private String getDefaultOriginAccount(Integer originBankId) {
+        String zeroFilled = zeroFilledAccountLikeDestination(originBankId);
+        if (zeroFilled != null && !zeroFilled.isBlank()) {
+            return zeroFilled;
+        }
+        if (configuredDefaultOriginAccount != null && !configuredDefaultOriginAccount.isBlank()) {
+            return configuredDefaultOriginAccount;
+        }
+        return "00000000000000000000";
+    }
+
+    private String zeroFilledAccountLikeDestination(Integer bankId) {
+        String template = findDestinationAccount(bankId);
+        if (template == null || template.isBlank()) {
+            return null;
+        }
+        StringBuilder result = new StringBuilder();
+        for (char ch : template.toCharArray()) {
+            result.append(Character.isDigit(ch) ? '0' : ch);
+        }
+        return result.toString();
+    }
+
+    private String findDestinationAccount(Integer bankId) {
+        if (transferDestinationAccounts == null || transferDestinationAccounts.isEmpty()) {
+            return null;
+        }
+        if (bankId != null) {
+            String account = transferDestinationAccounts.get(bankId);
+            if (account != null && !account.isBlank()) {
+                return account;
+            }
+        }
+        return transferDestinationAccounts.values().iterator().next();
+    }
+
+    private void applyDefaultOriginAccountIfEmpty() {
+        String current = jTextFieldOriginAccount.getText();
+        if (isZeroTemplate(current)) {
+            applyDefaultOriginAccount();
+        }
+    }
+
+    private boolean isZeroTemplate(String value) {
+        if (value == null || value.isBlank()) {
+            return true;
+        }
+        boolean hasDigits = false;
+        for (char ch : value.toCharArray()) {
+            if (Character.isDigit(ch)) {
+                hasDigits = true;
+                if (ch != '0') {
+                    return false;
+                }
+            }
+        }
+        return hasDigits;
+    }
+
+    private String findConfiguredAccount(Map<String, String> normalizedAccounts, String normalizedName) {
+        if (normalizedAccounts.isEmpty()) {
+            return null;
+        }
+        return normalizedAccounts.entrySet()
+                .stream()
+                .filter(entry -> normalizedName.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
     }
 
     private void updateDestinationAccountFromBank() {
@@ -321,8 +422,8 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
     }
 
     public void limpiarFormularioTransferencia() {
-        jTextFieldOriginAccount.setText(defaultOriginAccount);
-        jComboBoxOriginBank.setSelectedIndex(0);
+        selectDefaultOriginBank();
+        applyDefaultOriginAccount();
         jTextFieldDestinationAccount.setText("");
         jComboBoxDestinationBank.setSelectedIndex(0);
         jTextFieldReference.setText("");
@@ -599,6 +700,13 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
 
     private ComboBoxItem<Integer> getSelectedComboItem(javax.swing.JComboBox<?> combo) {
         return toIntegerComboItem(combo.getSelectedItem());
+    }
+
+    private ComboBoxItem<Integer> getComboItemAt(javax.swing.JComboBox<?> combo, int index) {
+        if (index < 0 || index >= combo.getItemCount()) {
+            return null;
+        }
+        return toIntegerComboItem(combo.getItemAt(index));
     }
 
     private boolean applyCashAmount(boolean showWarnings) {
@@ -1704,8 +1812,8 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
 
         String originAccount = toNullableString(jTextFieldOriginAccount.getText());
         if (originAccount == null || originAccount.isBlank()) {
-            originAccount = defaultOriginAccount;
-            jTextFieldOriginAccount.setText(defaultOriginAccount);
+            originAccount = getDefaultOriginAccount(originBankItem != null ? originBankItem.getValue() : null);
+            jTextFieldOriginAccount.setText(originAccount);
         }
         String destinationAccount = toNullableString(jTextFieldDestinationAccount.getText());
         if (destinationAccount == null || destinationAccount.isBlank()) {
@@ -2098,6 +2206,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
                 if (receipt != null) {
                     refreshClientTable(receipt.getClient());
                     JOptionPane.showMessageDialog(this, "Recibo guardado con éxito", "Cobranza", JOptionPane.INFORMATION_MESSAGE);
+                    showReceiptOnScreen(receipt);
                     maybeSendReceiptByEmail(receipt);
                     isOpen = false;
                     dispose();
@@ -2127,6 +2236,21 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
             ClientManagementView.jLabelsaldoDeudor.setText(clientController.formatCurrency(totalBalance));
         } catch (Exception ex) {
             Logger.getLogger(ClientReceiptInsertView.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void showReceiptOnScreen(ClientReceipt receipt) {
+        if (receipt == null) {
+            return;
+        }
+        try {
+            ReceiptDetailData detailData = ReceiptDetailLoader.loadClientReceipt(sqlSession, receipt, clientController);
+            if (detailData != null) {
+                receiptPrintService.print(receipt, receipt.getClient(), detailData);
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(ClientReceiptInsertView.class.getName())
+                    .log(Level.WARNING, "No se pudo mostrar el recibo en pantalla", ex);
         }
     }
 
@@ -2308,6 +2432,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
     }//GEN-LAST:event_jTextFieldOriginAccountKeyPressed
 
     private void jComboBoxOriginBankActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBoxOriginBankActionPerformed
+        applyDefaultOriginAccountIfEmpty();
         attemptAutoAddTransfer();
     }//GEN-LAST:event_jComboBoxOriginBankActionPerformed
 

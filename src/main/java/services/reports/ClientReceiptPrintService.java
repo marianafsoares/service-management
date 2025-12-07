@@ -173,24 +173,11 @@ public class ClientReceiptPrintService {
             if (transfer == null || transfer.getAmount() == null || !isPositive(transfer.getAmount())) {
                 continue;
             }
-            String origin = combineBankAndAccount(transfer.getOriginBankName(), transfer.getOriginAccount());
-            String destination = combineBankAndAccount(transfer.getDestinationBankName(), transfer.getDestinationAccount());
-            String reference = safeString(transfer.getReference());
-            StringBuilder builder = new StringBuilder("Transferencia ");
-            if (!origin.isEmpty()) {
-                builder.append("de ").append(origin);
-            }
-            if (!destination.isEmpty()) {
-                if (builder.length() > 12) {
-                    builder.append(" ");
-                }
-                builder.append("a ").append(destination);
-            }
-            if (!reference.isEmpty()) {
-                builder.append(" (Ref ").append(reference).append(")");
-            }
-            builder.append(": $").append(formatAmount(transfer.getAmount()));
-            lines.add(builder.toString());
+            String destinationBank = safeString(transfer.getDestinationBankName());
+            String label = destinationBank.isEmpty()
+                    ? "Transferencia"
+                    : "Transferencia a " + destinationBank;
+            lines.add(String.format(Locale.ROOT, "%s: $%s", label, formatAmount(transfer.getAmount())));
         }
 
         for (ReceiptRetention retention : detailData.getRetentionPayments()) {
