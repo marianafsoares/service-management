@@ -105,6 +105,10 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
                 }
             }
 
+            if (selectedInvoice == null) {
+                selectedInvoice = resolveInvoiceFromTableSelection();
+            }
+
             if (selectedInvoice != null) {
                 this.invoice = selectedInvoice;
                 initializeClientData();
@@ -567,6 +571,73 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         return null;
     }
 
+    private ClientInvoice resolveInvoiceFromTableSelection() {
+        if (ClientHistoryView.isOpen) {
+            return resolveFromTable(ClientHistoryView.jTable1, ClientHistoryView.invoices);
+        }
+        if (ClientInvoiceManagementView.isOpen) {
+            return resolveFromTable(ClientInvoiceManagementView.jTable1, ClientInvoiceManagementView.invoices);
+        }
+        return null;
+    }
+
+    private ClientInvoice resolveFromTable(javax.swing.JTable table, List<ClientInvoice> cachedInvoices) {
+        int row = table != null ? table.getSelectedRow() : -1;
+        if (row < 0) {
+            return null;
+        }
+
+        try {
+            String numberStr = normalizeTableNumber(table.getValueAt(row, 2));
+            String pointOfSale = extractPointOfSale(numberStr);
+            String invoiceNumber = extractInvoiceNumber(numberStr);
+
+            ClientInvoice cached = findInCache(pointOfSale, invoiceNumber, cachedInvoices);
+            if (cached != null) {
+                return cached;
+            }
+
+            String typeValue = valueToString(table.getValueAt(row, 1));
+            String invoiceType = InvoiceTypeUtils.toStorageValue(typeValue);
+            return invoiceController.findByPointOfSaleAndNumber(pointOfSale, invoiceNumber, invoiceType);
+        } catch (Exception ex) {
+            Logger.getLogger(ClientInvoiceDetailView.class.getName()).log(Level.WARNING,
+                    "No se pudo resolver la factura seleccionada para visualizar", ex);
+            return null;
+        }
+    }
+
+    private String normalizeTableNumber(Object value) {
+        return value != null ? value.toString() : "";
+    }
+
+    private String extractPointOfSale(String numberStr) {
+        String[] parts = numberStr.split("-");
+        return normalizeDigits(parts.length > 0 ? parts[0] : "");
+    }
+
+    private String extractInvoiceNumber(String numberStr) {
+        String[] parts = numberStr.split("-");
+        return normalizeDigits(parts.length > 1 ? parts[1] : "");
+    }
+
+    private ClientInvoice findInCache(String pointOfSale, String invoiceNumber, List<ClientInvoice> cachedInvoices) {
+        if (cachedInvoices == null) {
+            return null;
+        }
+        for (ClientInvoice inv : cachedInvoices) {
+            if (inv == null) {
+                continue;
+            }
+            String invPos = normalizeDigits(inv.getPointOfSale());
+            String invNum = normalizeDigits(inv.getInvoiceNumber());
+            if (pointOfSale.equals(invPos) && invoiceNumber.equals(invNum)) {
+                return inv;
+            }
+        }
+        return null;
+    }
+
     private boolean isBudget(ClientInvoice invoice) {
         if (invoice == null) {
             return false;
@@ -581,6 +652,10 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         }
         String digits = value.replaceAll("[^0-9]", "");
         return digits.replaceFirst("^0+(?!$)", "");
+    }
+
+    private String valueToString(Object value) {
+        return value != null ? value.toString() : "";
     }
 
     private ClientInvoice findAssociatedInvoice(ClientInvoice invoice) {
