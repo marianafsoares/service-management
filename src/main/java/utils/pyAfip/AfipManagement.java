@@ -461,9 +461,12 @@ public final class AfipManagement {
     private static void writeEntryHeader(PrintWriter pw,
                                                    ClientInvoice invoice,
                                                    Client client) {
+        int afipTypeCode = resolveAfipTypeCode(invoice.getInvoiceType());
+        boolean isInvoiceTypeC = isTypeCInvoice(afipTypeCode);
+
         pw.print("0");
         pw.print(formatDate(invoice.getInvoiceDate(), 1));
-        pw.print(mapToPyAfipReceiptCode(resolveAfipTypeCode(invoice.getInvoiceType())));
+        pw.print(mapToPyAfipReceiptCode(afipTypeCode));
         pw.print(padLeftWithZeros(invoice.getPointOfSale(), 4));
         pw.print(padLeftWithZeros(invoice.getInvoiceNumber(), 8));
         pw.print(padLeftWithZeros(invoice.getInvoiceNumber(), 8));
@@ -476,9 +479,11 @@ public final class AfipManagement {
         pw.print(padLeftWithZeros(client.getDocumentNumber(), 11));
 
         BigDecimal impNeto = truncateAmount(Optional.ofNullable(invoice.getSubtotal()).orElse(BigDecimal.ZERO), 2);
-        BigDecimal impIva = truncateAmount(Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO)
-                .add(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO)), 2);
-        BigDecimal impTotal = truncateAmount(Optional.ofNullable(invoice.getTotal()).orElse(impNeto.add(impIva)), 2);
+        BigDecimal impIva = isInvoiceTypeC ? BigDecimal.ZERO
+                : truncateAmount(Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO)
+                        .add(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO)), 2);
+        BigDecimal impTotal = truncateAmount(Optional.ofNullable(invoice.getTotal())
+                .orElse(isInvoiceTypeC ? impNeto : impNeto.add(impIva)), 2);
 
         pw.print(formatAmount(impTotal, 13, 2));
         pw.print(formatAmount(BigDecimal.ZERO, 13, 2));
@@ -505,7 +510,7 @@ public final class AfipManagement {
         pw.print(padRightWithSpaces("", 4));
         pw.print(padRightWithSpaces("", 8));
         pw.print(padRightWithSpaces("", 8));
-        pw.print(mapToAfipReceiptCode(resolveAfipTypeCode(invoice.getInvoiceType())));
+        pw.print(mapToAfipReceiptCode(afipTypeCode));
         pw.print(padLeftWithZeros(invoice.getPointOfSale(), 5));
         pw.print(padRightWithSpaces("", 14));
         pw.print(padRightWithSpaces("", 1));
@@ -517,6 +522,10 @@ public final class AfipManagement {
 
     private static void writeVatEntryDetails(PrintWriter pw,
                                                    ClientInvoice invoice) {
+        if (isTypeCInvoice(resolveAfipTypeCode(invoice.getInvoiceType()))) {
+            return;
+        }
+
         BigDecimal iva105 = truncateAmount(Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO), 2);
         BigDecimal iva21 = truncateAmount(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO), 2);
 
@@ -710,7 +719,9 @@ public final class AfipManagement {
 
     private static void writePdfItems(PrintWriter pw, ClientInvoice invoice) {
         List<ClientInvoiceDetail> detalles = invoice.getDetails();
-        boolean esFacturaB = isTypeBInvoice(resolveAfipTypeCode(invoice.getInvoiceType()));
+        int tipoComprobante = resolveAfipTypeCode(invoice.getInvoiceType());
+        boolean esFacturaB = isTypeBInvoice(tipoComprobante);
+        boolean omitirDetalleIVA = esFacturaB || isTypeCInvoice(tipoComprobante);
 
         if (detalles == null) {
             return;
@@ -743,7 +754,7 @@ public final class AfipManagement {
             pw.print(formatAmount(truncateAmount(subtotal, 3), 12, 3));
 
             String codigoIVA;
-            if (esFacturaB) {
+            if (omitirDetalleIVA) {
                 codigoIVA = padRightWithSpaces("", 5);
             } else if (tasa.compareTo(VAT_RATE_21) == 0) {
                 codigoIVA = "00005";
@@ -763,7 +774,7 @@ public final class AfipManagement {
                             .divide(BigDecimal.valueOf(100), 4, AMOUNT_ROUNDING_MODE));
             pw.print(formatAmount(truncateAmount(bonificacion, 2), 13, 2));
 
-            BigDecimal impIVA = esFacturaB ? BigDecimal.ZERO : truncateAmount(ivaMonto, 2);
+            BigDecimal impIVA = omitirDetalleIVA ? BigDecimal.ZERO : truncateAmount(ivaMonto, 2);
             pw.println(formatAmount(impIVA, 13, 2));
         }
     }
@@ -807,6 +818,15 @@ public final class AfipManagement {
     }
 
     private static void writePdfVatSummary(PrintWriter pw, ClientInvoice invoice) {
+        if (isTypeCInvoice(resolveAfipTypeCode(invoice.getInvoiceType()))) {
+            pw.print("4");
+            pw.print("00003");
+            pw.print(formatAmount(BigDecimal.ZERO, 12, 3));
+            pw.print(formatAmount(BigDecimal.ZERO, 12, 3));
+            pw.println(padRightWithSpaces("IVA 0%", 200));
+            return;
+        }
+
         BigDecimal iva105 = truncateAmount(Optional.ofNullable(invoice.getVat105()).orElse(BigDecimal.ZERO), 3);
         BigDecimal iva21 = truncateAmount(Optional.ofNullable(invoice.getVat21()).orElse(BigDecimal.ZERO), 3);
 
@@ -994,6 +1014,10 @@ public final class AfipManagement {
 
     public static boolean isTypeBInvoice(int tipoComprobante) {
         return tipoComprobante == 1 || tipoComprobante == 2 || tipoComprobante == 3;
+    }
+
+    public static boolean isTypeCInvoice(int tipoComprobante) {
+        return tipoComprobante == 11 || tipoComprobante == 12 || tipoComprobante == 13;
     }
 
     public static String mapUnitToAfipCode(String medida) {
