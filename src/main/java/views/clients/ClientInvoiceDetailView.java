@@ -27,6 +27,7 @@ import views.clients.ClientInvoiceManagementView;
 import views.clients.ClientHistoryView;
 import views.MainView;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
@@ -43,17 +44,20 @@ import javax.swing.table.TableColumn;
 import utils.Constants;
 import utils.InvoiceTypeUtils;
 import utils.TableUtils;
+import services.EmailService;
 
 public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
 
     public static boolean isOpen = false;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter EMAIL_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private ClientInvoiceController invoiceController;
     private ClientInvoiceDetailController detailController;
     private ClientController clientController;
     private SqlSession sqlSession;
     private AfipPdfService afipPdfService;
     private ClientInvoiceManualPrintService manualPrintService;
+    private EmailService emailService;
     private ClientInvoice invoice;
     private List<ClientInvoiceDetail> invoiceDetails;
 
@@ -74,6 +78,7 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
             clientController = new ClientController(clientService);
             afipPdfService = new AfipPdfService();
             manualPrintService = new ClientInvoiceManualPrintService();
+            emailService = new EmailService();
 
             initComponents();
             isOpen = true;
@@ -104,7 +109,7 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
                 this.invoice = selectedInvoice;
                 initializeClientData();
                 jLabelInvoiceType.setText(InvoiceTypeUtils.toDisplayValue(invoice.getInvoiceType()));
-                jLabelInvoiceNumber.setText(String.format("%s-%s", invoice.getPointOfSale(), invoice.getInvoiceNumber()));
+                jLabelInvoiceNumber.setText(formatInvoiceNumber(invoice));
                 jLabelDate.setText(formatDate(invoice.getInvoiceDate()));
                 jLabelClientName.setText(buildClientLabel(invoice));
 
@@ -158,6 +163,77 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         return value == null ? BigDecimal.ZERO.toString() : value.setScale(2, RoundingMode.HALF_EVEN).toString();
     }
 
+    private String formatInvoiceNumber(ClientInvoice invoice) {
+        if (invoice == null) {
+            return "";
+        }
+        return formatInvoiceNumber(invoice.getPointOfSale(), invoice.getInvoiceNumber());
+    }
+
+    private String formatInvoiceNumber(String pointOfSale, String number) {
+        String paddedPos = leftPadDigits(pointOfSale, 4);
+        String paddedNumber = leftPadDigits(number, 8);
+        if (paddedPos.isEmpty() && paddedNumber.isEmpty()) {
+            return "";
+        }
+        if (paddedPos.isEmpty()) {
+            return paddedNumber;
+        }
+        if (paddedNumber.isEmpty()) {
+            return paddedPos;
+        }
+        return String.format("%s-%s", paddedPos, paddedNumber);
+    }
+
+    private String leftPadDigits(String value, int size) {
+        String normalized = sanitizeDigits(value);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        if (normalized.length() > size) {
+            normalized = normalized.substring(normalized.length() - size);
+        }
+        return String.format("%" + size + "s", normalized).replace(' ', '0');
+    }
+
+    private String sanitizeDigits(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("[^0-9]", "");
+    }
+
+    private String buildInvoiceEmailBody(ClientInvoice invoice) {
+        String clientName = invoice != null && invoice.getClient() != null && invoice.getClient().getFullName() != null
+                ? invoice.getClient().getFullName()
+                : "cliente";
+        String formattedDate = invoice != null && invoice.getInvoiceDate() != null
+                ? EMAIL_DATE_FORMATTER.format(invoice.getInvoiceDate())
+                : "la fecha indicada";
+        String total = formatEmailAmount(invoice != null ? invoice.getTotal() : null);
+        String invoiceType = InvoiceTypeUtils.toDisplayValue(invoice != null ? invoice.getInvoiceType() : null);
+
+        StringBuilder body = new StringBuilder()
+                .append("<p>Hola ").append(clientName).append(",</p>")
+                .append("<p>Te reenviamos la factura ").append(formatInvoiceNumber(invoice)).append(".</p>")
+                .append("<p>Fecha: ").append(formattedDate);
+
+        if (invoiceType != null && !invoiceType.isBlank()) {
+            body.append("<br/>").append("Tipo: ").append(invoiceType.trim());
+        }
+
+        body.append("<br/>").append("Total: $").append(total).append("</p>")
+                .append("<p>Adjuntamos el comprobante en PDF.</p>")
+                .append("<p>Gracias.</p>");
+
+        return body.toString();
+    }
+
+    private String formatEmailAmount(BigDecimal amount) {
+        BigDecimal safe = amount != null ? amount : BigDecimal.ZERO;
+        return safe.setScale(2, RoundingMode.HALF_EVEN).toPlainString();
+    }
+
     private void setModelTable() {
         TableUtils.configureClientInvoiceDetailViewTable(jTable1);
     }
@@ -202,6 +278,7 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         jLabel10 = new javax.swing.JLabel();
         jLabelIva105 = new javax.swing.JLabel();
         jButtonPrint = new javax.swing.JButton();
+        jButtonResend = new javax.swing.JButton();
         jLabelInvoiceType = new javax.swing.JLabel();
         jLabelInvoiceNumber = new javax.swing.JLabel();
         jLabelDate = new javax.swing.JLabel();
@@ -327,6 +404,17 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         getContentPane().add(jButtonPrint);
         jButtonPrint.setBounds(430, 400, 150, 30);
 
+        jButtonResend.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
+        jButtonResend.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/facturacion.png"))); // NOI18N
+        jButtonResend.setText("Reenviar");
+        jButtonResend.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonResendActionPerformed(evt);
+            }
+        });
+        getContentPane().add(jButtonResend);
+        jButtonResend.setBounds(610, 400, 170, 30);
+
         jLabelInvoiceType.setFont(new java.awt.Font("Calibri", 1, 20)); // NOI18N
         getContentPane().add(jLabelInvoiceType);
         jLabelInvoiceType.setBounds(50, 30, 110, 20);
@@ -397,6 +485,54 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
                     JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_jButtonPrintActionPerformed
+
+    private void jButtonResendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonResendActionPerformed
+        if (invoice == null) {
+            JOptionPane.showMessageDialog(this, "No hay una factura seleccionada para reenviar", "Reenviar",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String email = invoice.getClient() != null ? invoice.getClient().getEmail() : null;
+        if (email == null || email.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "La factura no tiene un email de destino configurado", "Reenviar",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            if (invoiceDetails != null) {
+                invoice.setDetails(invoiceDetails);
+            }
+            ClientInvoice associatedInvoice = findAssociatedInvoice(invoice);
+            File pdf = afipPdfService.generatePdfFile(invoice, associatedInvoice, false);
+            if (pdf == null || !pdf.exists()) {
+                throw new AfipPdfException("No se pudo generar el PDF para reenviar la factura");
+            }
+
+            List<File> attachments = new ArrayList<>();
+            attachments.add(pdf);
+
+            String subject = "Factura " + formatInvoiceNumber(invoice);
+            String body = buildInvoiceEmailBody(invoice);
+            boolean sent = emailService.sendEmail(email.trim(), subject, body, attachments, true);
+
+            if (sent) {
+                JOptionPane.showMessageDialog(this, "Factura reenviada a " + email.trim(), "Reenviar",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "No se pudo enviar el mail a " + email.trim(), "Reenviar",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (AfipPdfException | ManualInvoicePrintException ex) {
+            Logger.getLogger(ClientInvoiceDetailView.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Reenviar", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            Logger.getLogger(ClientInvoiceDetailView.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, "Ocurrió un error al intentar reenviar la factura", "Reenviar",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_jButtonResendActionPerformed
 
     private void jButtonReturnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonReturnActionPerformed
         isOpen = false;
@@ -469,6 +605,7 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonPrint;
+    private javax.swing.JButton jButtonResend;
     private javax.swing.JButton jButtonReturn;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;

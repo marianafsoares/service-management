@@ -176,7 +176,7 @@ public final class AfipManagement {
         writer.write("[PDF]");
         writer.newLine();
         writeIniLine(writer, "LOGO", resolveConfiguredValue(PDF_LOGO_PROPERTY, defaultValues.get("LOGO"), ""));
-        writeIniLine(writer, "EMPRESA", resolveConfiguredValue(PDF_COMPANY_NAME_PROPERTY,
+        writeIniLine(writer, "EMPRESA", resolveConfiguredValueAllowEmpty(PDF_COMPANY_NAME_PROPERTY,
                 defaultValues.get("EMPRESA"), resolveIssuerCuitLabel(invoice)));
         writeIniLine(writer, "MEMBRETE1", resolveConfiguredValue(PDF_HEADER_LINE1_PROPERTY,
                 defaultValues.get("MEMBRETE1"), ""));
@@ -268,6 +268,23 @@ public final class AfipManagement {
             return valueFromConfig.trim();
         }
         if (iniValue != null && !iniValue.trim().isEmpty()) {
+            return iniValue.trim();
+        }
+        return defaultValue;
+    }
+
+    private static String resolveConfiguredValueAllowEmpty(String key, String iniValue, String defaultValue) {
+        String configured = System.getProperty(key);
+        if (configured != null) {
+            return configured.trim();
+        }
+
+        String valueFromConfig = AppConfig.get(key, null);
+        if (valueFromConfig != null) {
+            return valueFromConfig.trim();
+        }
+
+        if (iniValue != null) {
             return iniValue.trim();
         }
         return defaultValue;
