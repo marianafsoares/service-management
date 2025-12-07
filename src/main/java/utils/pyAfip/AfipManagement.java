@@ -710,7 +710,9 @@ public final class AfipManagement {
 
     private static void writePdfItems(PrintWriter pw, ClientInvoice invoice) {
         List<ClientInvoiceDetail> detalles = invoice.getDetails();
-        boolean esFacturaB = isTypeBInvoice(resolveAfipTypeCode(invoice.getInvoiceType()));
+        int tipoComprobante = resolveAfipTypeCode(invoice.getInvoiceType());
+        boolean esFacturaB = isTypeBInvoice(tipoComprobante);
+        boolean omitirDetalleIVA = esFacturaB || isTypeCInvoice(tipoComprobante);
 
         if (detalles == null) {
             return;
@@ -743,7 +745,7 @@ public final class AfipManagement {
             pw.print(formatAmount(truncateAmount(subtotal, 3), 12, 3));
 
             String codigoIVA;
-            if (esFacturaB) {
+            if (omitirDetalleIVA) {
                 codigoIVA = padRightWithSpaces("", 5);
             } else if (tasa.compareTo(VAT_RATE_21) == 0) {
                 codigoIVA = "00005";
@@ -763,7 +765,7 @@ public final class AfipManagement {
                             .divide(BigDecimal.valueOf(100), 4, AMOUNT_ROUNDING_MODE));
             pw.print(formatAmount(truncateAmount(bonificacion, 2), 13, 2));
 
-            BigDecimal impIVA = esFacturaB ? BigDecimal.ZERO : truncateAmount(ivaMonto, 2);
+            BigDecimal impIVA = omitirDetalleIVA ? BigDecimal.ZERO : truncateAmount(ivaMonto, 2);
             pw.println(formatAmount(impIVA, 13, 2));
         }
     }
@@ -994,6 +996,10 @@ public final class AfipManagement {
 
     public static boolean isTypeBInvoice(int tipoComprobante) {
         return tipoComprobante == 1 || tipoComprobante == 2 || tipoComprobante == 3;
+    }
+
+    public static boolean isTypeCInvoice(int tipoComprobante) {
+        return tipoComprobante == 11 || tipoComprobante == 12 || tipoComprobante == 13;
     }
 
     public static String mapUnitToAfipCode(String medida) {
