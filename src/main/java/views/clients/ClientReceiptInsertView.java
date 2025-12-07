@@ -1351,19 +1351,19 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         jLabelCashTotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabelCashTotal.setText("0.0");
         getContentPane().add(jLabelCashTotal);
-        jLabelCashTotal.setBounds(700, 310, 70, 20);
+        jLabelCashTotal.setBounds(630, 310, 140, 20);
 
         jLabelCardTotal.setFont(new java.awt.Font("Calibri", 2, 16)); // NOI18N
         jLabelCardTotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabelCardTotal.setText("0.0");
         getContentPane().add(jLabelCardTotal);
-        jLabelCardTotal.setBounds(700, 340, 70, 20);
+        jLabelCardTotal.setBounds(630, 340, 140, 20);
 
         jLabelChequeTotal.setFont(new java.awt.Font("Calibri", 2, 16)); // NOI18N
         jLabelChequeTotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabelChequeTotal.setText("0.0");
         getContentPane().add(jLabelChequeTotal);
-        jLabelChequeTotal.setBounds(700, 370, 70, 20);
+        jLabelChequeTotal.setBounds(630, 370, 140, 20);
 
         jLabel6.setFont(new java.awt.Font("Calibri", 1, 16)); // NOI18N
         jLabel6.setText("Pto Venta");
@@ -1374,7 +1374,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         jLabelTotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabelTotal.setText("0.0");
         getContentPane().add(jLabelTotal);
-        jLabelTotal.setBounds(700, 480, 70, 20);
+        jLabelTotal.setBounds(630, 480, 140, 20);
 
         jButtonConfirmReceipt.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
         jButtonConfirmReceipt.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/ok.png"))); // NOI18N
@@ -1433,13 +1433,13 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         jLabelRest.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabelRest.setText("0.0");
         getContentPane().add(jLabelRest);
-        jLabelRest.setBounds(700, 510, 70, 20);
+        jLabelRest.setBounds(630, 510, 140, 20);
 
         jLabelRetentionTotal.setFont(new java.awt.Font("Calibri", 2, 16)); // NOI18N
         jLabelRetentionTotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabelRetentionTotal.setText("0.0");
         getContentPane().add(jLabelRetentionTotal);
-        jLabelRetentionTotal.setBounds(700, 400, 70, 20);
+        jLabelRetentionTotal.setBounds(630, 400, 140, 20);
 
         jLabel20.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
         jLabel20.setText("Retenciones:");
@@ -1487,7 +1487,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
         jLabelTransferTotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabelTransferTotal.setText("0.0");
         getContentPane().add(jLabelTransferTotal);
-        jLabelTransferTotal.setBounds(700, 430, 70, 20);
+        jLabelTransferTotal.setBounds(630, 430, 140, 20);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents

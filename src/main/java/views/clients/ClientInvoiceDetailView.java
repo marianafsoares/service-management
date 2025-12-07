@@ -415,11 +415,11 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         getContentPane().add(jButtonResend);
         jButtonResend.setBounds(350, 440, 140, 30);
 
-        jLabelInvoiceType.setFont(new java.awt.Font("Calibri", 1, 20)); // NOI18N
+        jLabelInvoiceType.setFont(new java.awt.Font("Calibri", 1, 18)); // NOI18N
         getContentPane().add(jLabelInvoiceType);
         jLabelInvoiceType.setBounds(50, 30, 110, 20);
 
-        jLabelInvoiceNumber.setFont(new java.awt.Font("Calibri", 1, 20)); // NOI18N
+        jLabelInvoiceNumber.setFont(new java.awt.Font("Calibri", 1, 18)); // NOI18N
         getContentPane().add(jLabelInvoiceNumber);
         jLabelInvoiceNumber.setBounds(170, 30, 150, 20);
 
@@ -438,9 +438,9 @@ public class ClientInvoiceDetailView extends javax.swing.JInternalFrame {
         getContentPane().add(jButtonReturn);
         jButtonReturn.setBounds(260, 400, 150, 30);
 
-        jLabelClientName.setFont(new java.awt.Font("Calibri", 1, 20)); // NOI18N
+        jLabelClientName.setFont(new java.awt.Font("Calibri", 1, 18)); // NOI18N
         getContentPane().add(jLabelClientName);
-        jLabelClientName.setBounds(50, 60, 260, 20);
+        jLabelClientName.setBounds(50, 60, 590, 20);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents

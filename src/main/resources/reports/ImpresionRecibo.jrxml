@@ -30,7 +30,7 @@
                                 <textElement textAlignment="Center">
                                         <font fontName="Calibri" size="16" isBold="true"/>
                                 </textElement>
-                                <text><![CDATA[RECIBO DE]]></text>
+                                <text><![CDATA[RECIBO DE COBRO]]></text>
                         </staticText>
                         <staticText>
                                 <reportElement x="411" y="34" width="22" height="20" uuid="f8d5ace1-6ddb-40c2-b856-c57091985ed9"/>
