@@ -125,41 +125,27 @@
 				</textElement>
 				<text><![CDATA[Código]]></text>
 			</staticText>
-			<staticText>
-				<reportElement x="53" y="134" width="216" height="20" uuid="d7bb05a4-6f3c-4850-b75a-48d033e338b6"/>
-				<textElement>
-					<font size="12" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Detalle]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="269" y="134" width="59" height="20" uuid="569aedc1-a062-46e7-8f2e-d5dfd368fa05"/>
-				<textElement textAlignment="Right">
-					<font size="12" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Cantidad]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="332" y="134" width="72" height="20" uuid="f7f08e06-0fa7-468d-9940-f85c03ae01b1"/>
-				<textElement textAlignment="Right">
-					<font size="12" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Precio]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="408" y="134" width="62" height="20" uuid="8e54bd43-867c-4995-ab98-b935f9d42982"/>
-				<textElement textAlignment="Right">
-					<font size="12" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Bonif]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="480" y="134" width="68" height="20" uuid="ccb13810-a09e-442b-8494-c860d36f9d04"/>
-				<textElement textAlignment="Right">
-					<font size="12" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Parcial]]></text>
-			</staticText>
+                        <staticText>
+                                <reportElement x="53" y="134" width="280" height="20" uuid="d7bb05a4-6f3c-4850-b75a-48d033e338b6"/>
+                                <textElement>
+                                        <font size="12" isBold="true"/>
+                                </textElement>
+                                <text><![CDATA[Detalle]]></text>
+                        </staticText>
+                        <staticText>
+                                <reportElement x="340" y="134" width="70" height="20" uuid="8e54bd43-867c-4995-ab98-b935f9d42982"/>
+                                <textElement textAlignment="Right">
+                                        <font size="12" isBold="true"/>
+                                </textElement>
+                                <text><![CDATA[Bonif]]></text>
+                        </staticText>
+                        <staticText>
+                                <reportElement x="420" y="134" width="139" height="20" uuid="f7f08e06-0fa7-468d-9940-f85c03ae01b1"/>
+                                <textElement textAlignment="Right">
+                                        <font size="12" isBold="true"/>
+                                </textElement>
+                                <text><![CDATA[Precio]]></text>
+                        </staticText>
 		</band>
 	</pageHeader>
 	<detail>
@@ -171,41 +157,27 @@
 				</textElement>
 				<textFieldExpression><![CDATA[$F{codArticulo}]]></textFieldExpression>
 			</textField>
-			<textField isStretchWithOverflow="true">
-				<reportElement x="53" y="5" width="216" height="20" uuid="1cf781ca-4097-4c5e-8d8a-bdd2c628614e"/>
-				<textElement textAlignment="Left">
-					<font fontName="Calibri" size="12"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{detalle}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="269" y="5" width="59" height="20" uuid="520b9025-6816-4948-a618-877df55d6b3c"/>
-				<textElement textAlignment="Right">
-					<font fontName="Calibri" size="12"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{cantidad}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="325" y="5" width="79" height="20" uuid="03f048a3-d5dd-427b-9399-0cca9e2186be"/>
-				<textElement textAlignment="Right">
-					<font fontName="Calibri" size="12"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{precio}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="470" y="5" width="79" height="20" uuid="05e08a78-602e-4fc5-a301-75db64da98b2"/>
-				<textElement textAlignment="Right">
-					<font fontName="Calibri" size="12"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{parcial}]]></textFieldExpression>
-			</textField>
-			<textField>
-				<reportElement x="427" y="5" width="43" height="20" uuid="42a66239-b1db-448d-a4b5-d94893907f45"/>
-				<textElement textAlignment="Right">
-					<font fontName="Calibri" size="12"/>
-				</textElement>
+                        <textField isStretchWithOverflow="true">
+                                <reportElement x="53" y="5" width="280" height="20" uuid="1cf781ca-4097-4c5e-8d8a-bdd2c628614e"/>
+                                <textElement textAlignment="Left">
+                                        <font fontName="Calibri" size="12"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{detalle}]]></textFieldExpression>
+                        </textField>
+                        <textField>
+                                <reportElement x="340" y="5" width="70" height="20" uuid="42a66239-b1db-448d-a4b5-d94893907f45"/>
+                                <textElement textAlignment="Right">
+                                        <font fontName="Calibri" size="12"/>
+                                </textElement>
                                 <textFieldExpression><![CDATA[$F{bonificacion} != null ? $F{bonificacion} : ""]]></textFieldExpression>
-			</textField>
+                        </textField>
+                        <textField>
+                                <reportElement x="420" y="5" width="120" height="20" uuid="03f048a3-d5dd-427b-9399-0cca9e2186be"/>
+                                <textElement textAlignment="Right">
+                                        <font fontName="Calibri" size="12"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{precio}]]></textFieldExpression>
+                        </textField>
 		</band>
 	</detail>
 	<pageFooter>
