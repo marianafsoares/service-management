@@ -26,7 +26,7 @@
         <title>
                 <band height="83" splitType="Stretch">
                         <staticText>
-                                <reportElement x="411" y="5" width="144" height="24" uuid="52642f83-ba95-4cad-ba9d-ef0598a0ce89"/>
+                                <reportElement x="380" y="5" width="175" height="24" uuid="52642f83-ba95-4cad-ba9d-ef0598a0ce89" textAdjust="ScaleFont"/>
                                 <textElement textAlignment="Center">
                                         <font fontName="Calibri" size="16" isBold="true"/>
                                 </textElement>
