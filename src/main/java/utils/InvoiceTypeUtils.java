@@ -43,6 +43,14 @@ public final class InvoiceTypeUtils {
     ).map(InvoiceTypeUtils::normalize)
             .collect(Collectors.toSet());
 
+    private static final Set<String> VAT_INCLUSIVE_TYPES = Stream.of(
+            Constants.FACTURA_C,
+            Constants.FACTURA_C_ABBR,
+            Constants.PRESUPUESTO,
+            Constants.PRESUPUESTO_ABBR
+    ).map(InvoiceTypeUtils::normalize)
+            .collect(Collectors.toSet());
+
     private static final Set<String> INVOICE_DOCUMENT_TYPES = Stream.of(
             Constants.FACTURA_A,
             Constants.FACTURA_B,
@@ -189,6 +197,14 @@ public final class InvoiceTypeUtils {
         return INVOICE_DOCUMENT_TYPES.contains(normalized)
                 || CREDIT_DOCUMENT_TYPES.contains(normalized)
                 || DEBIT_DOCUMENT_TYPES.contains(normalized);
+    }
+
+    public static boolean isVatInclusive(String description) {
+        String normalized = normalize(description);
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        return VAT_INCLUSIVE_TYPES.contains(normalized);
     }
 
     public static Integer findAfipTypeCode(String description) {
