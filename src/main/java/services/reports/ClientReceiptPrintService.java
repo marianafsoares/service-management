@@ -176,7 +176,7 @@ public class ClientReceiptPrintService {
             String destinationBank = safeString(transfer.getDestinationBankName());
             String label = destinationBank.isEmpty()
                     ? "Transferencia"
-                    : "Transferencia a banco " + destinationBank;
+                    : "Transferencia a " + destinationBank;
             lines.add(String.format(Locale.ROOT, "%s: $%s", label, formatAmount(transfer.getAmount())));
         }
 
