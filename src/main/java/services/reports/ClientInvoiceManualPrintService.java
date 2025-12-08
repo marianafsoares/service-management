@@ -12,7 +12,6 @@ import java.util.Map;
 import models.Client;
 import models.ClientInvoice;
 import models.ClientInvoiceDetail;
-import models.InvoiceCategory;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -88,8 +87,6 @@ public class ClientInvoiceManualPrintService {
                 ? invoice.getDetails() : Collections.emptyList();
         List<Map<String, ?>> rows = new ArrayList<>();
 
-        boolean vatInclusiveInvoice = shouldUseVatInclusivePrices(invoice);
-
         Client client = invoice.getClient();
         String clientName = client != null ? safeString(client.getFullName()) : "";
         String address = buildAddress(client);
@@ -108,11 +105,11 @@ public class ClientInvoiceManualPrintService {
 
         if (details.isEmpty()) {
             rows.add(buildDetailRow(null, total, formattedDate, formattedNumber, clientName, address,
-                    locality, condition, clientNumber, cuit, observations, documentType, vatInclusiveInvoice));
+                    locality, condition, clientNumber, cuit, observations, documentType));
         } else {
             for (ClientInvoiceDetail detail : details) {
                 rows.add(buildDetailRow(detail, total, formattedDate, formattedNumber, clientName, address,
-                        locality, condition, clientNumber, cuit, observations, documentType, vatInclusiveInvoice));
+                        locality, condition, clientNumber, cuit, observations, documentType));
             }
         }
 
@@ -121,8 +118,7 @@ public class ClientInvoiceManualPrintService {
 
     private Map<String, Object> buildDetailRow(ClientInvoiceDetail detail, String total, String formattedDate,
             String formattedNumber, String clientName, String address, String locality,
-            String condition, String clientNumber, String cuit, String observations, String documentType,
-            boolean vatInclusiveInvoice) {
+            String condition, String clientNumber, String cuit, String observations, String documentType) {
 
         Map<String, Object> row = new HashMap<>();
         row.put("tipoComprobante", documentType);
@@ -145,11 +141,10 @@ public class ClientInvoiceManualPrintService {
             BigDecimal unitPrice = detail.getUnitPrice() != null ? detail.getUnitPrice() : BigDecimal.ZERO;
             BigDecimal quantity = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
             BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal() : unitPrice.multiply(quantity);
-            BigDecimal vatAmount = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
+            BigDecimal vatPercent = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
+            BigDecimal vatAmount = subtotal.multiply(vatPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             BigDecimal lineTotal = subtotal.add(vatAmount);
-            BigDecimal displayUnitPrice = vatInclusiveInvoice
-                    ? calculateUnitPriceWithVat(quantity, lineTotal)
-                    : unitPrice;
+            BigDecimal displayUnitPrice = calculateUnitPriceWithVat(quantity, lineTotal);
 
             row.put("precio", formatAmount(displayUnitPrice));
             row.put("parcial", formatAmount(lineTotal));
@@ -164,21 +159,6 @@ public class ClientInvoiceManualPrintService {
         }
 
         return row;
-    }
-
-    private boolean shouldUseVatInclusivePrices(ClientInvoice invoice) {
-        if (invoice == null || invoice.getInvoiceType() == null) {
-            return false;
-        }
-        String normalized = InvoiceTypeUtils.toStorageValue(invoice.getInvoiceType());
-        if (InvoiceTypeUtils.isVatInclusive(normalized)) {
-            return true;
-        }
-        InvoiceCategory category = invoice.getCategory();
-        if (category != null && InvoiceTypeUtils.isVatInclusive(category.getDescription())) {
-            return true;
-        }
-        return false;
     }
 
     private BigDecimal calculateUnitPriceWithVat(BigDecimal quantity, BigDecimal totalWithVat) {
