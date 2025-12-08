@@ -43,13 +43,7 @@ public final class InvoiceTypeUtils {
     ).map(InvoiceTypeUtils::normalize)
             .collect(Collectors.toSet());
 
-    private static final Set<String> VAT_INCLUSIVE_TYPES = Stream.of(
-            Constants.FACTURA_C,
-            Constants.FACTURA_C_ABBR,
-            Constants.PRESUPUESTO,
-            Constants.PRESUPUESTO_ABBR
-    ).map(InvoiceTypeUtils::normalize)
-            .collect(Collectors.toSet());
+    private static final Set<String> VAT_INCLUSIVE_TYPES = Collections.emptySet();
 
     private static final Set<String> INVOICE_DOCUMENT_TYPES = Stream.of(
             Constants.FACTURA_A,
