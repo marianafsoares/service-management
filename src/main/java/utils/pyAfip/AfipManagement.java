@@ -733,7 +733,9 @@ public final class AfipManagement {
         List<ClientInvoiceDetail> detalles = invoice.getDetails();
         int tipoComprobante = resolveAfipTypeCode(invoice.getInvoiceType());
         boolean esFacturaB = isTypeBInvoice(tipoComprobante);
-        boolean omitirDetalleIVA = esFacturaB || isTypeCInvoice(tipoComprobante);
+        boolean esFacturaC = isTypeCInvoice(tipoComprobante);
+        boolean omitirDetalleIVA = esFacturaB || esFacturaC;
+        boolean incluirIVAEnPrecio = esFacturaB || esFacturaC;
 
         if (detalles == null) {
             return;
@@ -757,7 +759,7 @@ public final class AfipManagement {
 
             BigDecimal precioConIVA = precio;
             BigDecimal subtotal = precio.multiply(cantidad).setScale(2, AMOUNT_ROUNDING_MODE);
-            if (esFacturaB) {
+            if (incluirIVAEnPrecio) {
                 precioConIVA = precio.multiply(BigDecimal.ONE.add(tasa)).setScale(2, AMOUNT_ROUNDING_MODE);
                 subtotal = precioConIVA.multiply(cantidad).setScale(2, AMOUNT_ROUNDING_MODE);
             }
