@@ -141,14 +141,16 @@ public class ClientInvoiceManualPrintService {
             BigDecimal unitPrice = detail.getUnitPrice() != null ? detail.getUnitPrice() : BigDecimal.ZERO;
             BigDecimal quantity = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
             BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal() : unitPrice.multiply(quantity);
-            BigDecimal vatPercent = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
-            BigDecimal vatAmount = subtotal.multiply(vatPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal storedVat = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
+            BigDecimal vatPercent = resolveVatPercent(subtotal, storedVat);
+            BigDecimal vatAmount = subtotal.multiply(vatPercent.movePointLeft(2)).setScale(2, RoundingMode.HALF_UP);
             BigDecimal lineTotal = subtotal.add(vatAmount);
             BigDecimal displayUnitPrice = calculateUnitPriceWithVat(quantity, lineTotal);
 
             row.put("precio", formatAmount(displayUnitPrice));
             row.put("parcial", formatAmount(lineTotal));
             row.put("bonificacion", formatBonification(detail.getDiscountPercent()));
+            row.put("impuesto", formatAmount(vatPercent));
         } else {
             row.put("codArticulo", "");
             row.put("detalle", "");
@@ -167,6 +169,21 @@ public class ClientInvoiceManualPrintService {
             return safeTotal;
         }
         return safeTotal.divide(quantity, 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveVatPercent(BigDecimal subtotal, BigDecimal vatValue) {
+        BigDecimal safeSubtotal = subtotal != null ? subtotal : BigDecimal.ZERO;
+        BigDecimal safeVat = vatValue != null ? vatValue : BigDecimal.ZERO;
+        if (safeVat.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        if (safeVat.compareTo(BigDecimal.ONE) > 0 && safeVat.compareTo(BigDecimal.valueOf(100)) <= 0) {
+            return safeVat.setScale(2, RoundingMode.HALF_UP);
+        }
+        if (safeSubtotal.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        return safeVat.multiply(BigDecimal.valueOf(100)).divide(safeSubtotal, 2, RoundingMode.HALF_UP);
     }
 
     private String resolveDocumentType(ClientInvoice invoice) {
