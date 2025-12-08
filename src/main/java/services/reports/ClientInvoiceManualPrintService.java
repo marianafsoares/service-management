@@ -141,8 +141,9 @@ public class ClientInvoiceManualPrintService {
             BigDecimal unitPrice = detail.getUnitPrice() != null ? detail.getUnitPrice() : BigDecimal.ZERO;
             BigDecimal quantity = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
             BigDecimal subtotal = detail.getSubtotal() != null ? detail.getSubtotal() : unitPrice.multiply(quantity);
-            BigDecimal vatAmount = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
-            BigDecimal vatPercent = calculateVatPercent(subtotal, vatAmount);
+            BigDecimal storedVat = detail.getVatAmount() != null ? detail.getVatAmount() : BigDecimal.ZERO;
+            BigDecimal vatPercent = resolveVatPercent(subtotal, storedVat);
+            BigDecimal vatAmount = subtotal.multiply(vatPercent.movePointLeft(2)).setScale(2, RoundingMode.HALF_UP);
             BigDecimal lineTotal = subtotal.add(vatAmount);
             BigDecimal displayUnitPrice = calculateUnitPriceWithVat(quantity, lineTotal);
 
@@ -170,9 +171,15 @@ public class ClientInvoiceManualPrintService {
         return safeTotal.divide(quantity, 2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal calculateVatPercent(BigDecimal subtotal, BigDecimal vatAmount) {
+    private BigDecimal resolveVatPercent(BigDecimal subtotal, BigDecimal vatValue) {
         BigDecimal safeSubtotal = subtotal != null ? subtotal : BigDecimal.ZERO;
-        BigDecimal safeVat = vatAmount != null ? vatAmount : BigDecimal.ZERO;
+        BigDecimal safeVat = vatValue != null ? vatValue : BigDecimal.ZERO;
+        if (safeVat.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        if (safeVat.compareTo(BigDecimal.ONE) > 0 && safeVat.compareTo(BigDecimal.valueOf(100)) <= 0) {
+            return safeVat.setScale(2, RoundingMode.HALF_UP);
+        }
         if (safeSubtotal.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }

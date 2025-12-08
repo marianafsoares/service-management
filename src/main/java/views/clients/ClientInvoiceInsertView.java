@@ -2234,11 +2234,9 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
             BigDecimal unitPrice = new BigDecimal(unitPriceObj.toString());
             BigDecimal priceWithDiscount = applyDiscount(unitPrice, discountPercent).setScale(2, RoundingMode.HALF_UP);
             BigDecimal baseSubtotal = priceWithDiscount.multiply(quantity).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal vatRate = vatPercent.movePointLeft(2);
-            BigDecimal vatAmount = baseSubtotal.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);
 
             detail.setUnitPrice(priceWithDiscount);
-            detail.setVatAmount(vatAmount);
+            detail.setVatAmount(vatPercent);
             detail.setSubtotal(baseSubtotal);
 
             details.add(detail);
