@@ -751,14 +751,19 @@ public final class AfipManagement {
             pw.print("07");
 
             BigDecimal precio = Optional.ofNullable(d.getUnitPrice()).orElse(BigDecimal.ZERO);
-            BigDecimal ivaMonto = Optional.ofNullable(d.getVatAmount()).orElse(BigDecimal.ZERO);
+            BigDecimal ivaPorcentaje = Optional.ofNullable(d.getVatAmount()).orElse(BigDecimal.ZERO);
             BigDecimal tasa = BigDecimal.ZERO;
-            if (precio.compareTo(BigDecimal.ZERO) > 0 && ivaMonto.compareTo(BigDecimal.ZERO) > 0) {
-                tasa = ivaMonto.divide(precio.multiply(cantidad), 4, AMOUNT_ROUNDING_MODE);
+            if (ivaPorcentaje.compareTo(BigDecimal.ZERO) > 0) {
+                tasa = ivaPorcentaje.compareTo(BigDecimal.ONE) > 0
+                        ? ivaPorcentaje.divide(BigDecimal.valueOf(100), 4, AMOUNT_ROUNDING_MODE)
+                        : ivaPorcentaje;
             }
 
+            BigDecimal baseSinIVA = precio.multiply(cantidad).setScale(2, AMOUNT_ROUNDING_MODE);
+            BigDecimal ivaMonto = baseSinIVA.multiply(tasa).setScale(2, AMOUNT_ROUNDING_MODE);
+
             BigDecimal precioConIVA = precio;
-            BigDecimal subtotal = precio.multiply(cantidad).setScale(2, AMOUNT_ROUNDING_MODE);
+            BigDecimal subtotal = baseSinIVA;
             if (incluirIVAEnPrecio) {
                 precioConIVA = precio.multiply(BigDecimal.ONE.add(tasa)).setScale(2, AMOUNT_ROUNDING_MODE);
                 subtotal = precioConIVA.multiply(cantidad).setScale(2, AMOUNT_ROUNDING_MODE);
