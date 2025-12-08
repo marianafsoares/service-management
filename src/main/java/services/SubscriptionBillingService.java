@@ -136,7 +136,7 @@ public class SubscriptionBillingService {
                 : description.trim());
         invoice.setPaymentMethod("Cuenta corriente");
         clientInvoiceRepository.insert(invoice);
-        persistDetail(invoice, netAmount, vatAmount, amount, vatInclusiveInvoice, description);
+        persistDetail(invoice, netAmount, amount, vatInclusiveInvoice, description);
         return invoice;
     }
 
@@ -298,7 +298,7 @@ public class SubscriptionBillingService {
         }
     }
 
-    private void persistDetail(ClientInvoice invoice, BigDecimal netAmount, BigDecimal vatAmount, BigDecimal total,
+    private void persistDetail(ClientInvoice invoice, BigDecimal netAmount, BigDecimal total,
             boolean vatInclusiveInvoice, String description) {
         if (invoice == null || invoice.getId() == null) {
             return;
@@ -315,7 +315,10 @@ public class SubscriptionBillingService {
 
         detail.setUnitPrice(unitPrice);
         detail.setDiscountPercent(BigDecimal.ZERO);
-        detail.setVatAmount(vatAmount);
+        BigDecimal vatPercent = vatInclusiveInvoice
+                ? BigDecimal.ZERO
+                : VAT_RATE_21.multiply(BigDecimal.valueOf(100)).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        detail.setVatAmount(vatPercent);
         detail.setSubtotal(unitPrice);
 
         clientInvoiceDetailRepository.insert(detail);
