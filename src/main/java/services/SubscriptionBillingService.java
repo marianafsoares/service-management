@@ -24,6 +24,9 @@ import repositories.ClientReceiptRepository;
 import repositories.ClientRepository;
 import utils.Constants;
 import utils.InvoiceTypeUtils;
+import services.afip.AfipAuthorizationException;
+import services.afip.AfipAuthorizationResult;
+import services.afip.AfipAuthorizationService;
 
 public class SubscriptionBillingService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -35,6 +38,7 @@ public class SubscriptionBillingService {
     private final ClientInvoiceRepository clientInvoiceRepository;
     private final ClientInvoiceDetailRepository clientInvoiceDetailRepository;
     private final ClientReceiptRepository clientReceiptRepository;
+    private final AfipAuthorizationService afipAuthorizationService;
 
     public SubscriptionBillingService(ClientRepository clientRepository,
                                       ClientInvoiceRepository clientInvoiceRepository,
@@ -44,6 +48,7 @@ public class SubscriptionBillingService {
         this.clientInvoiceRepository = clientInvoiceRepository;
         this.clientInvoiceDetailRepository = clientInvoiceDetailRepository;
         this.clientReceiptRepository = clientReceiptRepository;
+        this.afipAuthorizationService = new AfipAuthorizationService();
     }
 
     public BigDecimal resolveDefaultSubscriptionAmount() {
@@ -135,8 +140,29 @@ public class SubscriptionBillingService {
                 ? "Abono mensual del servicio"
                 : description.trim());
         invoice.setPaymentMethod("Cuenta corriente");
+        ClientInvoiceDetail detail = buildInvoiceDetail(invoice, netAmount, amount, vatInclusiveInvoice, description);
+        List<ClientInvoiceDetail> details = Collections.singletonList(detail);
+
+        if (InvoiceTypeUtils.requiresAfipAuthorization(invoiceType)) {
+            AfipAuthorizationResult result = afipAuthorizationService.authorize(invoice, details, null);
+            if (!result.isApproved()) {
+                String message = result.getMessage().isEmpty()
+                        ? "AFIP rechazó la autorización del comprobante."
+                        : result.getMessage();
+                throw new AfipAuthorizationException(message);
+            }
+
+            String cae = result.getCae();
+            if (cae == null || cae.trim().isEmpty()) {
+                throw new AfipAuthorizationException("AFIP aprobó el comprobante pero no devolvió un CAE.");
+            }
+
+            invoice.setCae(cae);
+            invoice.setCaeExpirationDate(result.getCaeExpirationDate());
+        }
+
         clientInvoiceRepository.insert(invoice);
-        persistDetail(invoice, netAmount, amount, vatInclusiveInvoice, description);
+        persistDetail(invoice, detail);
         return invoice;
     }
 
@@ -298,12 +324,8 @@ public class SubscriptionBillingService {
         }
     }
 
-    private void persistDetail(ClientInvoice invoice, BigDecimal netAmount, BigDecimal total,
+    private ClientInvoiceDetail buildInvoiceDetail(ClientInvoice invoice, BigDecimal netAmount, BigDecimal total,
             boolean vatInclusiveInvoice, String description) {
-        if (invoice == null || invoice.getId() == null) {
-            return;
-        }
-
         ClientInvoiceDetail detail = new ClientInvoiceDetail();
         detail.setInvoice(invoice);
         detail.setArticleCode("99");
@@ -320,7 +342,14 @@ public class SubscriptionBillingService {
                 : VAT_RATE_21.multiply(BigDecimal.valueOf(100)).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         detail.setVatAmount(vatPercent);
         detail.setSubtotal(unitPrice);
+        return detail;
+    }
 
+    private void persistDetail(ClientInvoice invoice, ClientInvoiceDetail detail) {
+        if (invoice == null || invoice.getId() == null || detail == null) {
+            return;
+        }
+        detail.setInvoice(invoice);
         clientInvoiceDetailRepository.insert(detail);
         invoice.setDetails(Collections.singletonList(detail));
     }

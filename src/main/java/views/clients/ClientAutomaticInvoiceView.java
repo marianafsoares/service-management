@@ -43,6 +43,7 @@ import repositories.impl.ClientReceiptRepositoryImpl;
 import services.ClientService;
 import services.EmailService;
 import services.SubscriptionBillingService;
+import services.afip.AfipAuthorizationException;
 import services.afip.AfipPdfException;
 import services.afip.AfipPdfService;
 
@@ -228,6 +229,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         int missingContact = 0;
         int manualSend = 0;
         int skipped = 0;
+        int rejectedByAfip = 0;
         int failedSend = 0;
         for (Client client : clients) {
             BigDecimal amount = resolveAmount(client, defaultAmount);
@@ -239,8 +241,19 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 continue;
             }
             BigDecimal previousBalance = resolveBalance(client.getId());
-            ClientInvoice invoice = subscriptionBillingService.generateInvoiceForClient(client, LocalDate.now(),
-                    defaultInvoiceType, amount, detail);
+            ClientInvoice invoice;
+            try {
+                invoice = subscriptionBillingService.generateInvoiceForClient(client, LocalDate.now(),
+                        defaultInvoiceType, amount, detail);
+            } catch (AfipAuthorizationException ex) {
+                summary.append("No se generó factura para ")
+                        .append(client.getFullName())
+                        .append(" (AFIP: ")
+                        .append(ex.getMessage())
+                        .append(")\n");
+                rejectedByAfip++;
+                continue;
+            }
             if (invoice == null) {
                 summary.append("No se generó factura para ")
                         .append(client.getFullName())
@@ -304,6 +317,9 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         }
         if (failedSend > 0) {
             message += "\nEnvios fallidos: " + failedSend;
+        }
+        if (rejectedByAfip > 0) {
+            message += "\nRechazadas por AFIP: " + rejectedByAfip;
         }
         if (skipped > 0) {
             message += "\nSaltadas por importe inválido: " + skipped;
