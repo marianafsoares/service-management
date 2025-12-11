@@ -25,6 +25,7 @@ import java.util.Locale;
 import javax.swing.JOptionPane;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
+import javax.swing.SwingWorker;
 import mappers.ClientInvoiceDetailMapper;
 import mappers.ClientInvoiceMapper;
 import mappers.ClientMapper;
@@ -46,6 +47,7 @@ import services.SubscriptionBillingService;
 import services.afip.AfipAuthorizationException;
 import services.afip.AfipPdfException;
 import services.afip.AfipPdfService;
+import java.util.stream.Collectors;
 
 public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
@@ -56,6 +58,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
     private final AfipPdfService afipPdfService;
     private final DecimalFormat currencyFormat;
     private final String defaultInvoiceType;
+    private final List<GeneratedInvoiceData> generatedInvoices;
 
     public ClientAutomaticInvoiceView() throws SQLException, Exception {
         SqlSession sqlSession = MyBatisConfig.getSqlSessionFactory().openSession(true);
@@ -77,6 +80,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         afipPdfService = new AfipPdfService();
         currencyFormat = createCurrencyFormat();
         defaultInvoiceType = AppConfig.get("subscription.invoice.type.default", null);
+        generatedInvoices = new ArrayList<>();
 
         isOpen = true;
         initComponents();
@@ -109,6 +113,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         jLabel2 = new javax.swing.JLabel();
         jTextFieldDetail = new javax.swing.JTextField();
         jFormattedTextFieldAmount = new javax.swing.JFormattedTextField();
+        jButtonGenerate = new javax.swing.JButton();
         jButtonSend = new javax.swing.JButton();
         jButtonClose = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
@@ -152,15 +157,25 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         getContentPane().add(jFormattedTextFieldAmount);
         jFormattedTextFieldAmount.setBounds(210, 65, 120, 30);
 
+        jButtonGenerate.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
+        jButtonGenerate.setText("Generar facturas");
+        jButtonGenerate.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonGenerateActionPerformed(evt);
+            }
+        });
+        getContentPane().add(jButtonGenerate);
+        jButtonGenerate.setBounds(30, 120, 190, 35);
+
         jButtonSend.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
-        jButtonSend.setText("Enviar facturación");
+        jButtonSend.setText("Enviar facturas");
         jButtonSend.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonSendActionPerformed(evt);
             }
         });
         getContentPane().add(jButtonSend);
-        jButtonSend.setBounds(30, 120, 220, 35);
+        jButtonSend.setBounds(230, 120, 190, 35);
 
         jButtonClose.setFont(new java.awt.Font("Calibri", 0, 16)); // NOI18N
         jButtonClose.setText("Cerrar");
@@ -170,13 +185,13 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             }
         });
         getContentPane().add(jButtonClose);
-        jButtonClose.setBounds(270, 120, 150, 35);
+        jButtonClose.setBounds(430, 120, 150, 35);
 
         jTextAreaSummary.setEditable(false);
         jTextAreaSummary.setColumns(20);
         jTextAreaSummary.setFont(new java.awt.Font("Calibri", 0, 14)); // NOI18N
         jTextAreaSummary.setRows(5);
-        jTextAreaSummary.setBorder(javax.swing.BorderFactory.createTitledBorder("Resultado del envío"));
+        jTextAreaSummary.setBorder(javax.swing.BorderFactory.createTitledBorder("Progreso"));
         jScrollPane1.setViewportView(jTextAreaSummary);
 
         getContentPane().add(jScrollPane1);
@@ -189,8 +204,12 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         dispose();
     }//GEN-LAST:event_jButtonCloseActionPerformed
 
+    private void jButtonGenerateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonGenerateActionPerformed
+        generarFacturas();
+    }//GEN-LAST:event_jButtonGenerateActionPerformed
+
     private void jButtonSendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSendActionPerformed
-        enviarFacturacion();
+        enviarFacturas();
     }//GEN-LAST:event_jButtonSendActionPerformed
 
     private void jTextFieldDetailKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextFieldDetailKeyPressed
@@ -201,11 +220,11 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
     private void jFormattedTextFieldAmountKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jFormattedTextFieldAmountKeyPressed
         if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
-            enviarFacturacion();
+            generarFacturas();
         }
     }//GEN-LAST:event_jFormattedTextFieldAmountKeyPressed
 
-    private void enviarFacturacion() {
+    private void generarFacturas() {
         String detail = jTextFieldDetail.getText() == null ? "" : jTextFieldDetail.getText().trim();
         if (detail.isBlank()) {
             JOptionPane.showMessageDialog(this, "Ingresá un detalle para la factura.", "Bits&Bytes", JOptionPane.WARNING_MESSAGE);
@@ -224,107 +243,36 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             return;
         }
 
-        StringBuilder summary = new StringBuilder();
-        int sentCount = 0;
-        int missingContact = 0;
-        int manualSend = 0;
-        int skipped = 0;
-        int rejectedByAfip = 0;
-        int failedSend = 0;
-        for (Client client : clients) {
-            BigDecimal amount = resolveAmount(client, defaultAmount);
-            if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-                summary.append("No se generó factura para ")
-                        .append(client.getFullName())
-                        .append(" (importe inválido)\n");
-                skipped++;
-                continue;
-            }
-            BigDecimal previousBalance = resolveBalance(client.getId());
-            ClientInvoice invoice;
-            try {
-                invoice = subscriptionBillingService.generateInvoiceForClient(client, LocalDate.now(),
-                        defaultInvoiceType, amount, detail);
-            } catch (AfipAuthorizationException ex) {
-                summary.append("No se generó factura para ")
-                        .append(client.getFullName())
-                        .append(" (AFIP: ")
-                        .append(ex.getMessage())
-                        .append(")\n");
-                rejectedByAfip++;
-                continue;
-            }
-            if (invoice == null) {
-                summary.append("No se generó factura para ")
-                        .append(client.getFullName())
-                        .append(" (importe no válido)\n");
-                skipped++;
-                continue;
-            }
-            File pdfAttachment = generateInvoicePdf(invoice);
-            if (client.getEmail() != null && !client.getEmail().isBlank()) {
-                boolean sent = sendInvoiceEmail(client, invoice, amount, detail, previousBalance, pdfAttachment);
-                summary.append("Factura ")
-                        .append(formatInvoiceDisplay(invoice))
-                        .append(sent ? " enviada a " : " no se pudo enviar a ")
-                        .append(client.getEmail())
-                        .append(pdfAttachment != null ? " (adjunto PDF)" : "")
-                        .append(" (cliente: ")
-                        .append(client.getFullName())
-                        .append(")\n");
-                if (sent) {
-                    sentCount++;
-                } else {
-                    failedSend++;
-                }
-                continue;
-            }
+        generatedInvoices.clear();
+        jTextAreaSummary.setText("");
+        appendToSummary("Iniciando generación de facturas...");
+        jButtonGenerate.setEnabled(false);
+        jButtonSend.setEnabled(false);
 
-            String target = resolveContact(client);
-            if (target == null) {
-                summary.append("Factura ")
-                        .append(formatInvoiceDisplay(invoice))
-                        .append(" generada para ")
-                        .append(client.getFullName())
-                        .append(" pero falta teléfono/email para enviarla\n");
-                missingContact++;
-                continue;
-            }
+        new GenerationWorker(clients, defaultAmount, detail).execute();
+    }
 
-            summary.append("Factura ")
-                    .append(formatInvoiceDisplay(invoice))
-                    .append(" generada para ")
-                    .append(client.getFullName())
-                    .append(" - enviar vía ")
-                    .append(target)
-                    .append(" ($")
-                    .append(currencyFormat.format(amount))
-                    .append(")\n");
-            manualSend++;
+    private void enviarFacturas() {
+        if (generatedInvoices.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Primero generá las facturas antes de enviarlas.", "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
+            return;
         }
 
-        jTextAreaSummary.setText(summary.toString());
+        List<GeneratedInvoiceData> invoicesToSend = generatedInvoices.stream()
+                .filter(GeneratedInvoiceData::hasEmail)
+                .collect(Collectors.toList());
 
-        String message = "Se procesó la facturación automática.";
-        int totalCreated = sentCount + missingContact + manualSend + failedSend;
-        message += "\nFacturas creadas: " + totalCreated;
-        message += "\nEnviadas por mail: " + sentCount;
-        if (missingContact > 0) {
-            message += "\nClientes sin datos de contacto: " + missingContact;
+        if (invoicesToSend.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay facturas con email configurado para enviar.", "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
+            return;
         }
-        if (manualSend > 0) {
-            message += "\nPendientes de enviar por WhatsApp/teléfono: " + manualSend;
-        }
-        if (failedSend > 0) {
-            message += "\nEnvios fallidos: " + failedSend;
-        }
-        if (rejectedByAfip > 0) {
-            message += "\nRechazadas por AFIP: " + rejectedByAfip;
-        }
-        if (skipped > 0) {
-            message += "\nSaltadas por importe inválido: " + skipped;
-        }
-        JOptionPane.showMessageDialog(this, message, "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
+
+        jTextAreaSummary.setText("");
+        appendToSummary("Iniciando envío de facturas...");
+        jButtonGenerate.setEnabled(false);
+        jButtonSend.setEnabled(false);
+
+        new SendInvoicesWorker(invoicesToSend).execute();
     }
 
     private boolean sendInvoiceEmail(Client client, ClientInvoice invoice, BigDecimal amount, String detail,
@@ -471,6 +419,180 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         return defaultAmount;
     }
 
+    private void appendToSummary(String text) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        if (!text.endsWith("\n")) {
+            text = text + "\n";
+        }
+        jTextAreaSummary.append(text);
+        jTextAreaSummary.setCaretPosition(jTextAreaSummary.getDocument().getLength());
+    }
+
+    private class GenerationWorker extends SwingWorker<GenerationResult, String> {
+
+        private final List<Client> clients;
+        private final BigDecimal defaultAmount;
+        private final String detail;
+
+        public GenerationWorker(List<Client> clients, BigDecimal defaultAmount, String detail) {
+            this.clients = clients;
+            this.defaultAmount = defaultAmount;
+            this.detail = detail;
+        }
+
+        @Override
+        protected GenerationResult doInBackground() {
+            GenerationResult result = new GenerationResult();
+            for (Client client : clients) {
+                BigDecimal amount = resolveAmount(client, defaultAmount);
+                if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+                    publish("Factura para " + client.getFullName() + " no generada (importe inválido)");
+                    result.skipped++;
+                    continue;
+                }
+                BigDecimal previousBalance = resolveBalance(client.getId());
+                try {
+                    ClientInvoice invoice = subscriptionBillingService.generateInvoiceForClient(client, LocalDate.now(),
+                            defaultInvoiceType, amount, detail);
+                    if (invoice == null) {
+                        publish("Factura para " + client.getFullName() + " no generada (importe no válido)");
+                        result.skipped++;
+                        continue;
+                    }
+                    File pdfAttachment = generateInvoicePdf(invoice);
+                    generatedInvoices.add(new GeneratedInvoiceData(client, invoice, amount, detail, previousBalance, pdfAttachment));
+                    publish("Factura " + formatInvoiceDisplay(invoice) + " cliente " + client.getFullName() + " autorizada");
+                    result.created++;
+                } catch (AfipAuthorizationException ex) {
+                    publish("Factura para " + client.getFullName() + " no autorizada: " + ex.getMessage());
+                    result.rejectedByAfip++;
+                } catch (Exception ex) {
+                    publish("Error al generar factura para " + client.getFullName() + ": " + ex.getMessage());
+                    result.failed++;
+                }
+            }
+            return result;
+        }
+
+        @Override
+        protected void process(List<String> chunks) {
+            chunks.forEach(ClientAutomaticInvoiceView.this::appendToSummary);
+        }
+
+        @Override
+        protected void done() {
+            jButtonGenerate.setEnabled(true);
+            try {
+                GenerationResult result = get();
+                appendToSummary("Generación de facturas finalizada.");
+                StringBuilder message = new StringBuilder("Se procesó la generación de facturas automáticas.");
+                message.append("\nFacturas autorizadas: ").append(result.created);
+                if (result.rejectedByAfip > 0) {
+                    message.append("\nRechazadas por AFIP: ").append(result.rejectedByAfip);
+                }
+                if (result.skipped > 0) {
+                    message.append("\nSaltadas por importe inválido: ").append(result.skipped);
+                }
+                if (result.failed > 0) {
+                    message.append("\nErrores al generar: ").append(result.failed);
+                }
+                JOptionPane.showMessageDialog(ClientAutomaticInvoiceView.this, message.toString(), "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
+                jButtonSend.setEnabled(!generatedInvoices.isEmpty());
+            } catch (Exception ex) {
+                appendToSummary("No se pudo completar la generación de facturas: " + ex.getMessage());
+            }
+        }
+    }
+
+    private class SendInvoicesWorker extends SwingWorker<SendResult, String> {
+
+        private final List<GeneratedInvoiceData> invoicesToSend;
+
+        public SendInvoicesWorker(List<GeneratedInvoiceData> invoicesToSend) {
+            this.invoicesToSend = invoicesToSend;
+        }
+
+        @Override
+        protected SendResult doInBackground() {
+            SendResult result = new SendResult();
+            for (GeneratedInvoiceData data : invoicesToSend) {
+                publish("Enviando factura " + formatInvoiceDisplay(data.invoice) + " a " + data.client.getEmail());
+                boolean sent = sendInvoiceEmail(data.client, data.invoice, data.amount, data.detail, data.previousBalance, data.pdfAttachment);
+                if (sent) {
+                    publish("Factura " + formatInvoiceDisplay(data.invoice) + " enviada a " + data.client.getEmail());
+                    result.sent++;
+                } else {
+                    publish("No se pudo enviar la factura " + formatInvoiceDisplay(data.invoice) + " a " + data.client.getEmail());
+                    result.failed++;
+                }
+            }
+            return result;
+        }
+
+        @Override
+        protected void process(List<String> chunks) {
+            chunks.forEach(ClientAutomaticInvoiceView.this::appendToSummary);
+        }
+
+        @Override
+        protected void done() {
+            jButtonGenerate.setEnabled(true);
+            jButtonSend.setEnabled(!generatedInvoices.isEmpty());
+            try {
+                SendResult result = get();
+                appendToSummary("Envío de facturas finalizado.");
+                StringBuilder message = new StringBuilder("Se procesó el envío de facturas por mail.");
+                message.append("\nFacturas enviadas: ").append(result.sent);
+                if (result.failed > 0) {
+                    message.append("\nEnvios fallidos: ").append(result.failed);
+                }
+                JOptionPane.showMessageDialog(ClientAutomaticInvoiceView.this, message.toString(), "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                appendToSummary("No se pudo completar el envío de facturas: " + ex.getMessage());
+            }
+        }
+    }
+
+    private static class GeneratedInvoiceData {
+
+        private final Client client;
+        private final ClientInvoice invoice;
+        private final BigDecimal amount;
+        private final String detail;
+        private final BigDecimal previousBalance;
+        private final File pdfAttachment;
+
+        public GeneratedInvoiceData(Client client, ClientInvoice invoice, BigDecimal amount, String detail,
+                BigDecimal previousBalance, File pdfAttachment) {
+            this.client = client;
+            this.invoice = invoice;
+            this.amount = amount;
+            this.detail = detail;
+            this.previousBalance = previousBalance;
+            this.pdfAttachment = pdfAttachment;
+        }
+
+        public boolean hasEmail() {
+            return client.getEmail() != null && !client.getEmail().isBlank();
+        }
+    }
+
+    private static class GenerationResult {
+
+        private int created;
+        private int rejectedByAfip;
+        private int skipped;
+        private int failed;
+    }
+
+    private static class SendResult {
+
+        private int sent;
+        private int failed;
+    }
+
     private BigDecimal resolveBalance(Integer clientId) {
         try {
             BigDecimal balance = clientController.getBalance(clientId);
@@ -508,6 +630,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         if (defaultAmount.compareTo(BigDecimal.ZERO) > 0) {
             jFormattedTextFieldAmount.setValue(defaultAmount);
         }
+        jButtonSend.setEnabled(false);
     }
 
     private String buildDefaultDetail() {
@@ -529,6 +652,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonClose;
+    private javax.swing.JButton jButtonGenerate;
     private javax.swing.JButton jButtonSend;
     private javax.swing.JFormattedTextField jFormattedTextFieldAmount;
     private javax.swing.JLabel jLabel1;
