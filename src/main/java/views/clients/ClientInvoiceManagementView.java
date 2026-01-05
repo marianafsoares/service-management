@@ -243,7 +243,7 @@ public class ClientInvoiceManagementView extends javax.swing.JInternalFrame {
             tm.addRow(new Object[]{
                 r.getInvoiceDate() != null ? r.getInvoiceDate().format(DATE_FORMATTER) : "",
                 InvoiceTypeUtils.toDisplayValue(r.getInvoiceType()),
-                String.format("%s-%s", Objects.toString(r.getPointOfSale(), ""), Objects.toString(r.getInvoiceNumber(), "")),
+                formatInvoiceNumber(r.getPointOfSale(), r.getInvoiceNumber()),
                 r.getClient() != null ? r.getClient().getId() : "",
                 r.getClient() != null ? Objects.toString(r.getClient().getFullName(), "") : "",
                 getCategoryDescription(r.getCategory()),
@@ -351,13 +351,11 @@ public class ClientInvoiceManagementView extends javax.swing.JInternalFrame {
 
         String pointOfSale = Objects.toString(invoice.getPointOfSale(), "");
         String invoiceNumber = Objects.toString(invoice.getInvoiceNumber(), "");
+        String formattedNumber = formatInvoiceNumber(pointOfSale, invoiceNumber);
 
         boolean matchesNumber = false;
         if (!pointOfSale.isBlank() || !invoiceNumber.isBlank()) {
-            String combinedNumber = pointOfSale.isBlank()
-                    ? invoiceNumber
-                    : pointOfSale + "-" + invoiceNumber;
-            String normalizedCombined = combinedNumber.toLowerCase(Locale.getDefault());
+            String normalizedCombined = formattedNumber.toLowerCase(Locale.getDefault());
 
             if (normalizedCombined.contains(normalized)) {
                 matchesNumber = true;
@@ -371,6 +369,23 @@ public class ClientInvoiceManagementView extends javax.swing.JInternalFrame {
         }
 
         return matchesName || matchesNumber;
+    }
+
+    private String formatInvoiceNumber(String pointOfSale, String number) {
+        String pos = leftPadDigits(pointOfSale, 4);
+        String invoiceNumber = leftPadDigits(number, 8);
+        return String.format("%s-%s", pos, invoiceNumber);
+    }
+
+    private String leftPadDigits(String value, int size) {
+        if (value == null) {
+            value = "";
+        }
+        String digits = value.replaceAll("[^0-9]", "");
+        if (digits.length() > size) {
+            digits = digits.substring(digits.length() - size);
+        }
+        return String.format(Locale.ROOT, "%" + size + "s", digits).replace(' ', '0');
     }
 
     private boolean filterByCategory(ClientInvoice invoice, Integer categoryId) {
