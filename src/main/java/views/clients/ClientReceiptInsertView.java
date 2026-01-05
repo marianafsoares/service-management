@@ -2318,7 +2318,7 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
             return "";
         }
         String point = formatPointOfSale(receipt.getPointOfSale());
-        String number = receipt.getReceiptNumber();
+        String number = formatReceiptNumber(receipt.getReceiptNumber());
         String formattedPoint = point != null ? point : receipt.getPointOfSale();
         if (formattedPoint == null || formattedPoint.isBlank()) {
             return number != null ? number : "";
@@ -2327,6 +2327,17 @@ public class ClientReceiptInsertView extends javax.swing.JInternalFrame {
             return formattedPoint;
         }
         return formattedPoint + "-" + number;
+    }
+
+    private String formatReceiptNumber(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String digits = value.replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            return "";
+        }
+        return String.format(Locale.ROOT, "%08d", Integer.parseInt(digits));
     }
 
     private void jTextFieldRetentionAmountKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextFieldRetentionAmountKeyPressed

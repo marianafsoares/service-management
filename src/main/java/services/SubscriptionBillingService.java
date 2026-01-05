@@ -124,10 +124,10 @@ public class SubscriptionBillingService {
         invoice.setInvoiceDate(billingDate != null ? billingDate.atStartOfDay() : LocalDateTime.now());
         String invoiceType = resolveInvoiceType(client, defaultInvoiceType);
         invoice.setInvoiceType(invoiceType);
-        String pointOfSale = resolvePointOfSale(client, invoiceType);
+        String pointOfSale = normalizePointOfSale(resolvePointOfSale(client, invoiceType));
         invoice.setPointOfSale(pointOfSale);
-        String invoiceNumber = sanitizeDigits(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
-        invoice.setInvoiceNumber(invoiceNumber.isBlank() ? "1" : invoiceNumber);
+        String invoiceNumber = normalizeInvoiceNumber(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
+        invoice.setInvoiceNumber(invoiceNumber.isBlank() ? leftPad("1", 8) : invoiceNumber);
         invoice.setIssuerCuit(resolveIssuerCuit());
         boolean vatInclusiveInvoice = InvoiceTypeUtils.isVatInclusive(invoiceType);
         BigDecimal netAmount = vatInclusiveInvoice ? amount : calculateNetAmount(amount);
@@ -294,8 +294,11 @@ public class SubscriptionBillingService {
         if (invoice == null) {
             return false;
         }
-        boolean posMatches = Objects.equals(normalize(pointOfSale), normalize(invoice.getPointOfSale()));
-        boolean typeMatches = normalize(invoiceType) == null || normalize(invoiceType).equals(normalize(invoice.getInvoiceType()));
+        boolean posMatches = Objects.equals(sanitizeDigits(pointOfSale), sanitizeDigits(invoice.getPointOfSale()));
+        String requestedType = InvoiceTypeUtils.toAbbreviation(invoiceType);
+        String existingType = InvoiceTypeUtils.toAbbreviation(invoice.getInvoiceType());
+        boolean typeMatches = requestedType == null || requestedType.isBlank()
+                || requestedType.equalsIgnoreCase(existingType);
         return posMatches && typeMatches;
     }
 
@@ -303,7 +306,7 @@ public class SubscriptionBillingService {
         if (value == null) {
             return null;
         }
-        String trimmed = value.trim();
+        String trimmed = value.trim().toLowerCase(Locale.ROOT);
         return trimmed.isEmpty() ? null : trimmed;
     }
 
@@ -375,9 +378,9 @@ public class SubscriptionBillingService {
         }
         String configured = sanitizeDigits(AppConfig.get("pos.default", "1"));
         if (configured == null || configured.isBlank()) {
-            return "1";
+            return leftPad("1", 4);
         }
-        return configured;
+        return normalizePointOfSale(configured);
     }
 
     private String sanitizeDigits(String value) {
@@ -385,6 +388,22 @@ public class SubscriptionBillingService {
             return "";
         }
         return value.replaceAll("[^0-9]", "");
+    }
+
+    private String normalizePointOfSale(String value) {
+        String digits = sanitizeDigits(value);
+        if (digits.isEmpty()) {
+            return "0000";
+        }
+        return leftPad(digits, 4);
+    }
+
+    private String normalizeInvoiceNumber(String value) {
+        String digits = sanitizeDigits(value);
+        if (digits.isEmpty()) {
+            return "";
+        }
+        return leftPad(digits, 8);
     }
 
     private String leftPad(String value, int size) {

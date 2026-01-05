@@ -106,7 +106,7 @@ public class ProviderReceiptManagementView extends javax.swing.JInternalFrame {
         for (ProviderReceipt r : list) {
             row = new Vector();
             row.add(formatReceiptDate(r.getReceiptDate()));
-            row.add(String.format("%s-%s", r.getPointOfSale(), r.getReceiptNumber()));
+            row.add(formatReceiptCode(r.getPointOfSale(), r.getReceiptNumber()));
             Provider provider = ensureProviderDetails(r.getProvider());
             row.add(provider != null ? safeProviderName(provider) : "");
             row.add(provider != null ? safeProviderCuit(provider) : "");
@@ -121,6 +121,21 @@ public class ProviderReceiptManagementView extends javax.swing.JInternalFrame {
             return "";
         }
         return date.toLocalDate().format(DATE_FORMATTER);
+    }
+
+    private String formatReceiptCode(String pointOfSale, String number) {
+        String pos = padNumeric(pointOfSale, 4);
+        String num = padNumeric(number, 8);
+        if (pos.isEmpty() && num.isEmpty()) {
+            return "";
+        }
+        if (pos.isEmpty()) {
+            return num;
+        }
+        if (num.isEmpty()) {
+            return pos;
+        }
+        return pos + "-" + num;
     }
 
     private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {
@@ -245,7 +260,7 @@ public class ProviderReceiptManagementView extends javax.swing.JInternalFrame {
             filtered = filteredByProvider;
         } else {
             filtered = filteredByProvider.stream().filter(r -> {
-                String number = String.format("%s-%s", r.getPointOfSale(), r.getReceiptNumber()).toLowerCase(Locale.ROOT);
+                String number = formatReceiptCode(r.getPointOfSale(), r.getReceiptNumber()).toLowerCase(Locale.ROOT);
                 Provider provider = ensureProviderDetails(r.getProvider());
                 String name = provider != null && provider.getName() != null
                         ? provider.getName().toLowerCase(Locale.ROOT)
