@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -333,8 +334,11 @@ public class ProviderHistorySearchByDateView extends javax.swing.JInternalFrame 
     }
 
     private String formatNumber(String pos, String number) {
-        String p = safeString(pos);
-        String n = safeString(number);
+        String p = padDigits(pos, 4);
+        String n = padDigits(number, 8);
+        if (p.isEmpty() && n.isEmpty()) {
+            return "";
+        }
         if (p.isEmpty()) {
             return n;
         }
@@ -342,6 +346,17 @@ public class ProviderHistorySearchByDateView extends javax.swing.JInternalFrame 
             return p;
         }
         return p + "-" + n;
+    }
+
+    private String padDigits(String value, int size) {
+        String digits = safeString(value).replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            return "";
+        }
+        if (digits.length() > size) {
+            digits = digits.substring(digits.length() - size);
+        }
+        return String.format(Locale.ROOT, "%" + size + "s", digits).replace(' ', '0');
     }
 
     private LocalDate toLocalDate(Date date) {
