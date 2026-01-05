@@ -138,6 +138,20 @@ public class ProviderReceiptManagementView extends javax.swing.JInternalFrame {
         return pos + "-" + num;
     }
 
+    private String padNumeric(String value, int length) {
+        if (value == null) {
+            return "";
+        }
+        String digits = value.replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            return "";
+        }
+        if (digits.length() >= length) {
+            return digits;
+        }
+        return String.format("%" + length + "s", digits).replace(' ', '0');
+    }
+
     private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {
         selectedProviderIdFilter = null;
         applyFilter();
