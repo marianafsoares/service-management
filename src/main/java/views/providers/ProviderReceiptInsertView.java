@@ -538,6 +538,39 @@ public class ProviderReceiptInsertView extends javax.swing.JInternalFrame {
                 && !jTextFieldCardAmount.getText().trim().isEmpty();
     }
 
+    private boolean hasTransferRow(ComboBoxItem<Integer> originBankItem, String originAccount,
+            ComboBoxItem<Integer> destinationBankItem, String destinationAccount, String reference, BigDecimal amount) {
+        if (originBankItem == null || destinationBankItem == null || amount == null) {
+            return false;
+        }
+        for (int i = 0; i < jTableTransferencias.getRowCount(); i++) {
+            ComboBoxItem<Integer> existingOrigin = toIntegerComboItem(jTableTransferencias.getValueAt(i, 0));
+            ComboBoxItem<Integer> existingDestination = toIntegerComboItem(jTableTransferencias.getValueAt(i, 2));
+            String existingOriginAccount = toNullableString(jTableTransferencias.getValueAt(i, 1));
+            String existingDestinationAccount = toNullableString(jTableTransferencias.getValueAt(i, 3));
+            String existingReference = toNullableString(jTableTransferencias.getValueAt(i, 4));
+            BigDecimal existingAmount = toBigDecimal(jTableTransferencias.getValueAt(i, 5));
+            if (existingAmount == null) {
+                continue;
+            }
+            boolean sameOrigin = existingOrigin != null
+                    && existingOrigin.getValue() != null
+                    && existingOrigin.getValue().equals(originBankItem.getValue());
+            boolean sameDestination = existingDestination != null
+                    && existingDestination.getValue() != null
+                    && existingDestination.getValue().equals(destinationBankItem.getValue());
+            boolean sameAmount = existingAmount.compareTo(amount) == 0;
+            if (sameOrigin && sameDestination
+                    && java.util.Objects.equals(existingOriginAccount, originAccount)
+                    && java.util.Objects.equals(existingDestinationAccount, destinationAccount)
+                    && java.util.Objects.equals(existingReference, reference)
+                    && sameAmount) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isTransferFormComplete() {
         return !jTextFieldChequeAmount1.getText().trim().isEmpty();
     }
@@ -1664,6 +1697,10 @@ public class ProviderReceiptInsertView extends javax.swing.JInternalFrame {
         String originAccount = toNullableString(jTextFieldOriginAccount.getText());
         String destinationAccount = toNullableString(jTextFieldDestinationAccount.getText());
         String reference = toNullableString(jTextFieldReference.getText());
+
+        if (hasTransferRow(originBankItem, originAccount, destinationBankItem, destinationAccount, reference, amount)) {
+            return false;
+        }
 
         addingTransfer = true;
         try {
