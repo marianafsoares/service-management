@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mappers.SubscriptionBillingDefaultAmountMapper">
+
+    <resultMap id="SubscriptionBillingDefaultAmountResultMap" type="models.SubscriptionBillingDefaultAmount">
+        <id property="id" column="id"/>
+        <result property="amount" column="amount"/>
+        <result property="invoiceType" column="invoice_type"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findEnabled" resultMap="SubscriptionBillingDefaultAmountResultMap">
+        SELECT id, amount, invoice_type, enabled, created_at, updated_at
+        FROM subscription_billing_default_amount
+        WHERE enabled = 1
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <update id="disableEnabled">
+        UPDATE subscription_billing_default_amount
+        SET enabled = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE enabled = 1
+    </update>
+
+    <insert id="insert" parameterType="models.SubscriptionBillingDefaultAmount" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO subscription_billing_default_amount (
+            amount, invoice_type, enabled, created_at
+        ) VALUES (
+            #{amount}, #{invoiceType}, #{enabled}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+</mapper>

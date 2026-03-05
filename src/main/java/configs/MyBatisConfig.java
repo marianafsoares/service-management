@@ -21,6 +21,7 @@ import mappers.ProviderInvoiceMapper;
 import mappers.ProviderMapper;
 import mappers.ProviderPaymentMapper;
 import mappers.SubcategoryMapper;
+import mappers.SubscriptionBillingDefaultAmountMapper;
 import mappers.TaxConditionMapper;
 import mappers.VatBookMapper;
 import mappers.receipts.ClientReceiptMapper;
@@ -115,6 +116,7 @@ public final class MyBatisConfig {
                         ProviderMapper.class,
                         ProviderPaymentMapper.class,
                         SubcategoryMapper.class,
+                        SubscriptionBillingDefaultAmountMapper.class,
                         TaxConditionMapper.class,
                         VatBookMapper.class,
                         ClientReceiptMapper.class,
