@@ -375,6 +375,16 @@ public class SubscriptionBillingService {
         if (fxInvoice) {
             return "0";
         }
+
+        if (InvoiceTypeUtils.requiresAfipAuthorization(type)) {
+            String afipConfigured = sanitizeDigits(AppConfig.get("pos.afip.default",
+                    AppConfig.get("pos.default", "1")));
+            if (afipConfigured == null || afipConfigured.isBlank()) {
+                return leftPad("1", 4);
+            }
+            return normalizePointOfSale(afipConfigured);
+        }
+
         String configured = sanitizeDigits(AppConfig.get("pos.default", "1"));
         if (configured == null || configured.isBlank()) {
             return leftPad("1", 4);
