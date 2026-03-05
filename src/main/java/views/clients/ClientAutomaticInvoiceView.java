@@ -63,6 +63,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
     private final String defaultInvoiceType;
     private final List<GeneratedInvoiceData> generatedInvoices;
     private BigDecimal lastUsedDefaultAmount;
+    private boolean generationInProgress;
 
     public ClientAutomaticInvoiceView() throws SQLException, Exception {
         SqlSession sqlSession = MyBatisConfig.getSqlSessionFactory().openSession(true);
@@ -88,6 +89,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         defaultInvoiceType = null;
         generatedInvoices = new ArrayList<>();
         lastUsedDefaultAmount = null;
+        generationInProgress = false;
 
         isOpen = true;
         initComponents();
@@ -227,11 +229,16 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
     private void jFormattedTextFieldAmountKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jFormattedTextFieldAmountKeyPressed
         if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
-            generarFacturas();
+            evt.consume();
+            jButtonGenerate.requestFocus();
         }
     }//GEN-LAST:event_jFormattedTextFieldAmountKeyPressed
 
     private void generarFacturas() {
+        if (generationInProgress) {
+            return;
+        }
+
         String detail = jTextFieldDetail.getText() == null ? "" : jTextFieldDetail.getText().trim();
         if (detail.isBlank()) {
             JOptionPane.showMessageDialog(this, "Ingresá un detalle para la factura.", "Bits&Bytes", JOptionPane.WARNING_MESSAGE);
@@ -251,6 +258,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         }
 
         generatedInvoices.clear();
+        generationInProgress = true;
         lastUsedDefaultAmount = defaultAmount;
         jTextAreaSummary.setText("");
         appendToSummary("Iniciando generación de facturas...");
@@ -492,6 +500,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         @Override
         protected void done() {
             jButtonGenerate.setEnabled(true);
+            generationInProgress = false;
             try {
                 GenerationResult result = get();
                 appendToSummary("Generación de facturas finalizada.");
@@ -511,6 +520,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 jButtonSend.setEnabled(!generatedInvoices.isEmpty());
             } catch (Exception ex) {
                 appendToSummary("No se pudo completar la generación de facturas: " + ex.getMessage());
+                jButtonSend.setEnabled(!generatedInvoices.isEmpty());
             }
         }
     }
