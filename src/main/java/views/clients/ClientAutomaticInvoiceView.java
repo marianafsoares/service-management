@@ -13,6 +13,9 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -59,6 +62,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
     private final DecimalFormat currencyFormat;
     private final String defaultInvoiceType;
     private final List<GeneratedInvoiceData> generatedInvoices;
+    private BigDecimal lastUsedDefaultAmount;
 
     public ClientAutomaticInvoiceView() throws SQLException, Exception {
         SqlSession sqlSession = MyBatisConfig.getSqlSessionFactory().openSession(true);
@@ -81,6 +85,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         currencyFormat = createCurrencyFormat();
         defaultInvoiceType = AppConfig.get("subscription.invoice.type.default", null);
         generatedInvoices = new ArrayList<>();
+        lastUsedDefaultAmount = null;
 
         isOpen = true;
         initComponents();
@@ -244,6 +249,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         }
 
         generatedInvoices.clear();
+        lastUsedDefaultAmount = defaultAmount;
         jTextAreaSummary.setText("");
         appendToSummary("Iniciando generación de facturas...");
         jButtonGenerate.setEnabled(false);
@@ -499,6 +505,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                     message.append("\nErrores al generar: ").append(result.failed);
                 }
                 JOptionPane.showMessageDialog(ClientAutomaticInvoiceView.this, message.toString(), "Bits&Bytes", JOptionPane.INFORMATION_MESSAGE);
+                promptToPersistDefaultAmount();
                 jButtonSend.setEnabled(!generatedInvoices.isEmpty());
             } catch (Exception ex) {
                 appendToSummary("No se pudo completar la generación de facturas: " + ex.getMessage());
@@ -647,6 +654,77 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             return new BigDecimal(configured.trim());
         } catch (Exception ex) {
             return BigDecimal.ZERO;
+        }
+    }
+
+    private void promptToPersistDefaultAmount() {
+        if (lastUsedDefaultAmount == null || lastUsedDefaultAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        BigDecimal configuredAmount = resolveDefaultAmount();
+        if (configuredAmount.compareTo(lastUsedDefaultAmount) == 0) {
+            return;
+        }
+
+        int option = JOptionPane.showConfirmDialog(this,
+                "El importe usado en esta facturación fue $" + currencyFormat.format(lastUsedDefaultAmount)
+                + ".\n¿Desea guardarlo como nuevo valor por defecto en app.properties?",
+                "Actualizar importe por defecto",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+        if (option != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        boolean updated = updateSubscriptionDefaultAmountInFiles(lastUsedDefaultAmount);
+        if (updated) {
+            JOptionPane.showMessageDialog(this,
+                    "Se actualizó subscription.amount.default a " + lastUsedDefaultAmount.stripTrailingZeros().toPlainString()
+                    + " en los archivos de configuración.",
+                    "Bits&Bytes",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo actualizar el valor por defecto en los archivos de configuración.",
+                    "Bits&Bytes",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private boolean updateSubscriptionDefaultAmountInFiles(BigDecimal amount) {
+        String newValue = amount.stripTrailingZeros().toPlainString();
+        boolean updatedAny = false;
+        updatedAny |= updatePropertyFile(Path.of("config", "app.properties"), "subscription.amount.default", newValue);
+        updatedAny |= updatePropertyFile(Path.of("src", "main", "resources", "app.properties"), "subscription.amount.default", newValue);
+        return updatedAny;
+    }
+
+    private boolean updatePropertyFile(Path filePath, String key, String value) {
+        try {
+            if (!Files.exists(filePath)) {
+                return false;
+            }
+            List<String> lines = Files.readAllLines(filePath, StandardCharsets.UTF_8);
+            boolean found = false;
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                String trimmed = line.trim();
+                if (trimmed.startsWith("#") || trimmed.startsWith("!")) {
+                    continue;
+                }
+                if (trimmed.startsWith(key + "=")) {
+                    lines.set(i, key + "=" + value);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                lines.add(key + "=" + value);
+            }
+            Files.write(filePath, lines, StandardCharsets.UTF_8);
+            return true;
+        } catch (IOException ex) {
+            return false;
         }
     }
 
