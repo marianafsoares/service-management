@@ -24,7 +24,9 @@ import repositories.ClientReceiptRepository;
 import repositories.ClientRepository;
 import repositories.SubscriptionBillingDefaultAmountRepository;
 import utils.Constants;
+import utils.DocumentValidator;
 import utils.InvoiceTypeUtils;
+import utils.PointOfSaleCuitResolver;
 import services.afip.AfipAuthorizationException;
 import services.afip.AfipAuthorizationResult;
 import services.afip.AfipAuthorizationService;
@@ -127,7 +129,7 @@ public class SubscriptionBillingService {
         invoice.setPointOfSale(pointOfSale);
         String invoiceNumber = normalizeInvoiceNumber(nextInvoiceNumber(pointOfSale, invoice.getInvoiceType()));
         invoice.setInvoiceNumber(invoiceNumber.isBlank() ? leftPad("1", 8) : invoiceNumber);
-        invoice.setIssuerCuit(resolveIssuerCuit());
+        invoice.setIssuerCuit(resolveIssuerCuit(pointOfSale));
         boolean vatInclusiveInvoice = InvoiceTypeUtils.isVatInclusive(invoiceType);
         BigDecimal netAmount = vatInclusiveInvoice ? amount : calculateNetAmount(amount);
         BigDecimal vatAmount = vatInclusiveInvoice ? BigDecimal.ZERO : amount.subtract(netAmount);
@@ -377,9 +379,14 @@ public class SubscriptionBillingService {
         }
 
         if (InvoiceTypeUtils.requiresAfipAuthorization(type)) {
+            String configuredForIssuer = resolveConfiguredAfipPointOfSaleFromIssuer();
+            if (configuredForIssuer != null) {
+                return configuredForIssuer;
+            }
+
             String afipConfigured = sanitizeDigits(AppConfig.get("pos.afip.default",
                     AppConfig.get("pos.default", "1")));
-            if (afipConfigured == null || afipConfigured.isBlank()) {
+            if (afipConfigured == null || afipConfigured.isBlank() || "0".equals(afipConfigured)) {
                 return leftPad("1", 4);
             }
             return normalizePointOfSale(afipConfigured);
@@ -423,13 +430,44 @@ public class SubscriptionBillingService {
         return String.format(Locale.ROOT, "%" + size + "s", digits).replace(' ', '0');
     }
 
-    private String resolveIssuerCuit() {
+    private String resolveConfiguredAfipPointOfSaleFromIssuer() {
+        String issuerCuit = resolveIssuerCuit(null);
+        if (issuerCuit == null || issuerCuit.isBlank()) {
+            return null;
+        }
+
+        for (PointOfSaleCuitResolver.PointOfSaleOption option : PointOfSaleCuitResolver.loadPointsForCuit(issuerCuit)) {
+            if (option == null || option.getCode() == null) {
+                continue;
+            }
+            String normalized = normalizePointOfSale(option.getCode());
+            if (!"0000".equals(normalized)) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    private String resolveIssuerCuit(String pointOfSale) {
+        String normalizedPoint = normalizePointOfSale(pointOfSale);
+        if (normalizedPoint != null && !normalizedPoint.isBlank() && !"0000".equals(normalizedPoint)) {
+            String mappedCuit = PointOfSaleCuitResolver.loadMappings().get(normalizedPoint);
+            String normalizedMapped = DocumentValidator.normalizeCuit(mappedCuit);
+            if (normalizedMapped != null && !normalizedMapped.isBlank()) {
+                return normalizedMapped;
+            }
+        }
+
         String cuits = AppConfig.get("company.cuits", "");
         if (cuits == null || cuits.isBlank()) {
             return "";
         }
         String[] parts = cuits.split(",");
-        return parts.length == 0 ? "" : parts[0].trim();
+        if (parts.length == 0) {
+            return "";
+        }
+        String normalized = DocumentValidator.normalizeCuit(parts[0]);
+        return normalized == null ? parts[0].trim() : normalized;
     }
 
     private boolean isCreditNote(String invoiceType) {
