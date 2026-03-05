@@ -50,6 +50,7 @@ import services.SubscriptionBillingService;
 import services.afip.AfipAuthorizationException;
 import services.afip.AfipPdfException;
 import services.afip.AfipPdfService;
+import utils.Constants;
 import java.util.stream.Collectors;
 
 public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
@@ -86,7 +87,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
         emailService = new EmailService();
         afipPdfService = new AfipPdfService();
         currencyFormat = createCurrencyFormat();
-        defaultInvoiceType = null;
+        defaultInvoiceType = Constants.FACTURA_C_ABBR;
         generatedInvoices = new ArrayList<>();
         lastUsedDefaultAmount = null;
         generationInProgress = false;
