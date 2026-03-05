@@ -51,6 +51,7 @@ import mappers.ClientRemitDetailMapper;
 import mappers.ClientRemitMapper;
 import mappers.ProductMapper;
 import mappers.InvoiceCategoryMapper;
+import mappers.SubscriptionBillingDefaultAmountMapper;
 import models.Client;
 import models.ClientBudget;
 import models.ClientBudgetDetail;
@@ -84,6 +85,8 @@ import repositories.impl.ClientRepositoryImpl;
 import repositories.impl.InvoiceTypeRepositoryImpl;
 import repositories.impl.ProductRepositoryImpl;
 import repositories.impl.InvoiceCategoryRepositoryImpl;
+import repositories.SubscriptionBillingDefaultAmountRepository;
+import repositories.impl.SubscriptionBillingDefaultAmountRepositoryImpl;
 import services.ClientBudgetDetailService;
 import services.ClientBudgetService;
 import services.ClientInvoiceDetailService;
@@ -94,6 +97,7 @@ import services.ClientService;
 import services.InvoiceTypeService;
 import services.ProductService;
 import services.InvoiceCategoryService;
+import services.SubscriptionBillingDefaultAmountService;
 import services.afip.AfipAuthorizationException;
 import services.afip.AfipAuthorizationResult;
 import services.afip.AfipAuthorizationService;
@@ -145,6 +149,7 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
     private InvoiceTypeController invoiceTypeController;
     private InvoiceCategoryController invoiceCategoryController;
     private AfipAuthorizationService afipAuthorizationService;
+    private SubscriptionBillingDefaultAmountService subscriptionBillingDefaultAmountService;
     private AfipPdfService afipPdfService;
     private ClientInvoiceManualPrintService manualPrintService;
     private boolean loadedFromRemit;
@@ -167,6 +172,7 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
         ClientBudgetDetailMapper budgetDetailMapper = sqlSession.getMapper(ClientBudgetDetailMapper.class);
         ProductMapper productMapper = sqlSession.getMapper(ProductMapper.class);
         InvoiceCategoryMapper invoiceCategoryMapper = sqlSession.getMapper(InvoiceCategoryMapper.class);
+        SubscriptionBillingDefaultAmountMapper subscriptionBillingDefaultAmountMapper = sqlSession.getMapper(SubscriptionBillingDefaultAmountMapper.class);
 
         ClientInvoiceRepository invoiceRepository = new ClientInvoiceRepositoryImpl(invoiceMapper);
         ClientInvoiceDetailRepository detailRepository = new ClientInvoiceDetailRepositoryImpl(detailMapper);
@@ -177,6 +183,7 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
         ClientBudgetDetailRepository budgetDetailRepository = new ClientBudgetDetailRepositoryImpl(budgetDetailMapper);
         ProductRepository productRepository = new ProductRepositoryImpl(productMapper);
         InvoiceCategoryRepository invoiceCategoryRepository = new InvoiceCategoryRepositoryImpl(invoiceCategoryMapper);
+        SubscriptionBillingDefaultAmountRepository subscriptionBillingDefaultAmountRepository = new SubscriptionBillingDefaultAmountRepositoryImpl(subscriptionBillingDefaultAmountMapper);
         InvoiceTypeRepository invoiceTypeRepository = new InvoiceTypeRepositoryImpl();
 
         ClientInvoiceService invoiceService = new ClientInvoiceService(invoiceRepository);
@@ -189,6 +196,7 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
         ProductService prodService = new ProductService(productRepository);
         InvoiceTypeService invoiceTypeService = new InvoiceTypeService(invoiceTypeRepository);
         InvoiceCategoryService invoiceCategoryService = new InvoiceCategoryService(invoiceCategoryRepository);
+        subscriptionBillingDefaultAmountService = new SubscriptionBillingDefaultAmountService(subscriptionBillingDefaultAmountRepository);
 
         clientInvoiceController = new ClientInvoiceController(invoiceService);
         clientInvoiceDetailController = new ClientInvoiceDetailController(detailService);
@@ -378,9 +386,8 @@ public class ClientInvoiceInsertView extends javax.swing.JInternalFrame {
         jComboBoxTipoCompro.setEnabled(true);
         jComboBoxPtoVenta.setEnabled(true);
 
-        String configuredDefault = AppConfig.get("subscription.invoice.type.default", Constants.FACTURA_A_ABBR);
-        String normalizedDefault = InvoiceTypeUtils.toStorageValue(
-                InvoiceTypeUtils.toAbbreviation(configuredDefault != null ? configuredDefault.trim() : ""));
+        String configuredDefault = subscriptionBillingDefaultAmountService.getEnabledInvoiceType();
+        String normalizedDefault = InvoiceTypeUtils.toStorageValue(configuredDefault);
         if (normalizedDefault.isEmpty()) {
             normalizedDefault = Constants.FACTURA_A_ABBR;
         }

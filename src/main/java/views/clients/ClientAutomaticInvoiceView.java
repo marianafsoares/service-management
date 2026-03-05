@@ -13,9 +13,6 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -33,6 +30,7 @@ import mappers.ClientInvoiceDetailMapper;
 import mappers.ClientInvoiceMapper;
 import mappers.ClientMapper;
 import mappers.receipts.ClientReceiptMapper;
+import mappers.SubscriptionBillingDefaultAmountMapper;
 import models.ClientInvoice;
 import models.Client;
 import org.apache.ibatis.session.SqlSession;
@@ -44,6 +42,8 @@ import repositories.ClientReceiptRepository;
 import repositories.impl.ClientInvoiceRepositoryImpl;
 import repositories.impl.ClientInvoiceDetailRepositoryImpl;
 import repositories.impl.ClientReceiptRepositoryImpl;
+import repositories.SubscriptionBillingDefaultAmountRepository;
+import repositories.impl.SubscriptionBillingDefaultAmountRepositoryImpl;
 import services.ClientService;
 import services.EmailService;
 import services.SubscriptionBillingService;
@@ -75,15 +75,17 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
                 clientInvoiceDetailMapper);
         ClientReceiptMapper clientReceiptMapper = sqlSession.getMapper(ClientReceiptMapper.class);
         ClientReceiptRepository clientReceiptRepository = new ClientReceiptRepositoryImpl(clientReceiptMapper);
+        SubscriptionBillingDefaultAmountMapper subscriptionBillingDefaultAmountMapper = sqlSession.getMapper(SubscriptionBillingDefaultAmountMapper.class);
+        SubscriptionBillingDefaultAmountRepository subscriptionBillingDefaultAmountRepository = new SubscriptionBillingDefaultAmountRepositoryImpl(subscriptionBillingDefaultAmountMapper);
         ClientService clientService = new ClientService(clientRepository, clientInvoiceRepository,
                 clientReceiptRepository);
         clientController = new ClientController(clientService);
         subscriptionBillingService = new SubscriptionBillingService(clientRepository, clientInvoiceRepository,
-                clientInvoiceDetailRepository, clientReceiptRepository);
+                clientInvoiceDetailRepository, clientReceiptRepository, subscriptionBillingDefaultAmountRepository);
         emailService = new EmailService();
         afipPdfService = new AfipPdfService();
         currencyFormat = createCurrencyFormat();
-        defaultInvoiceType = AppConfig.get("subscription.invoice.type.default", null);
+        defaultInvoiceType = null;
         generatedInvoices = new ArrayList<>();
         lastUsedDefaultAmount = null;
 
@@ -649,12 +651,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
     }
 
     private BigDecimal resolveDefaultAmount() {
-        String configured = AppConfig.get("subscription.amount.default", "0");
-        try {
-            return new BigDecimal(configured.trim());
-        } catch (Exception ex) {
-            return BigDecimal.ZERO;
-        }
+        return subscriptionBillingService.resolveDefaultSubscriptionAmount();
     }
 
     private void promptToPersistDefaultAmount() {
@@ -668,7 +665,7 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
 
         int option = JOptionPane.showConfirmDialog(this,
                 "El importe usado en esta facturación fue $" + currencyFormat.format(lastUsedDefaultAmount)
-                + ".\n¿Desea guardarlo como nuevo valor por defecto en app.properties?",
+                + ".\n¿Desea guardarlo como nuevo valor por defecto para la facturación automática?",
                 "Actualizar importe por defecto",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE);
@@ -676,54 +673,26 @@ public class ClientAutomaticInvoiceView extends javax.swing.JInternalFrame {
             return;
         }
 
-        boolean updated = updateSubscriptionDefaultAmountInFiles(lastUsedDefaultAmount);
+        boolean updated = updateSubscriptionDefaultAmount(lastUsedDefaultAmount);
         if (updated) {
             JOptionPane.showMessageDialog(this,
-                    "Se actualizó subscription.amount.default a " + lastUsedDefaultAmount.stripTrailingZeros().toPlainString()
-                    + " en los archivos de configuración.",
+                    "Se actualizó el importe por defecto de facturación automática a "
+                    + lastUsedDefaultAmount.stripTrailingZeros().toPlainString() + ".",
                     "Bits&Bytes",
                     JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this,
-                    "No se pudo actualizar el valor por defecto en los archivos de configuración.",
+                    "No se pudo actualizar el valor por defecto en la base de datos.",
                     "Bits&Bytes",
                     JOptionPane.WARNING_MESSAGE);
         }
     }
 
-    private boolean updateSubscriptionDefaultAmountInFiles(BigDecimal amount) {
-        String newValue = amount.stripTrailingZeros().toPlainString();
-        boolean updatedAny = false;
-        updatedAny |= updatePropertyFile(Path.of("config", "app.properties"), "subscription.amount.default", newValue);
-        updatedAny |= updatePropertyFile(Path.of("src", "main", "resources", "app.properties"), "subscription.amount.default", newValue);
-        return updatedAny;
-    }
-
-    private boolean updatePropertyFile(Path filePath, String key, String value) {
+    private boolean updateSubscriptionDefaultAmount(BigDecimal amount) {
         try {
-            if (!Files.exists(filePath)) {
-                return false;
-            }
-            List<String> lines = Files.readAllLines(filePath, StandardCharsets.UTF_8);
-            boolean found = false;
-            for (int i = 0; i < lines.size(); i++) {
-                String line = lines.get(i);
-                String trimmed = line.trim();
-                if (trimmed.startsWith("#") || trimmed.startsWith("!")) {
-                    continue;
-                }
-                if (trimmed.startsWith(key + "=")) {
-                    lines.set(i, key + "=" + value);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                lines.add(key + "=" + value);
-            }
-            Files.write(filePath, lines, StandardCharsets.UTF_8);
+            subscriptionBillingService.replaceDefaultSubscriptionAmount(amount);
             return true;
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             return false;
         }
     }

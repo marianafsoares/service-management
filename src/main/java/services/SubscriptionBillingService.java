@@ -22,6 +22,7 @@ import repositories.ClientInvoiceRepository;
 import repositories.ClientInvoiceDetailRepository;
 import repositories.ClientReceiptRepository;
 import repositories.ClientRepository;
+import repositories.SubscriptionBillingDefaultAmountRepository;
 import utils.Constants;
 import utils.InvoiceTypeUtils;
 import services.afip.AfipAuthorizationException;
@@ -39,25 +40,27 @@ public class SubscriptionBillingService {
     private final ClientInvoiceDetailRepository clientInvoiceDetailRepository;
     private final ClientReceiptRepository clientReceiptRepository;
     private final AfipAuthorizationService afipAuthorizationService;
+    private final SubscriptionBillingDefaultAmountService subscriptionBillingDefaultAmountService;
 
     public SubscriptionBillingService(ClientRepository clientRepository,
                                       ClientInvoiceRepository clientInvoiceRepository,
                                       ClientInvoiceDetailRepository clientInvoiceDetailRepository,
-                                      ClientReceiptRepository clientReceiptRepository) {
+                                      ClientReceiptRepository clientReceiptRepository,
+                                      SubscriptionBillingDefaultAmountRepository subscriptionBillingDefaultAmountRepository) {
         this.clientRepository = clientRepository;
         this.clientInvoiceRepository = clientInvoiceRepository;
         this.clientInvoiceDetailRepository = clientInvoiceDetailRepository;
         this.clientReceiptRepository = clientReceiptRepository;
         this.afipAuthorizationService = new AfipAuthorizationService();
+        this.subscriptionBillingDefaultAmountService = new SubscriptionBillingDefaultAmountService(subscriptionBillingDefaultAmountRepository);
     }
 
     public BigDecimal resolveDefaultSubscriptionAmount() {
-        String configured = AppConfig.get("subscription.amount.default", "0");
-        try {
-            return new BigDecimal(configured.trim());
-        } catch (Exception ignored) {
-            return BigDecimal.ZERO;
-        }
+        return subscriptionBillingDefaultAmountService.getEnabledAmount();
+    }
+
+    public void replaceDefaultSubscriptionAmount(BigDecimal amount) {
+        subscriptionBillingDefaultAmountService.replaceEnabledAmount(amount);
     }
 
     public BigDecimal resolveSubscriptionAmount(Client client) {
@@ -82,11 +85,7 @@ public class SubscriptionBillingService {
         if (defaultInvoiceType != null && !defaultInvoiceType.isBlank()) {
             return InvoiceTypeUtils.toAbbreviation(defaultInvoiceType.trim());
         }
-        String configured = AppConfig.get("subscription.invoice.type.default", Constants.FACTURA_A_ABBR);
-        if (configured == null || configured.isBlank()) {
-            return Constants.FACTURA_A_ABBR;
-        }
-        return InvoiceTypeUtils.toAbbreviation(configured.trim());
+        return subscriptionBillingDefaultAmountService.getEnabledInvoiceType();
     }
 
     public List<ClientInvoice> generateMonthlyInvoices(LocalDate billingDate, String defaultInvoiceType) {
