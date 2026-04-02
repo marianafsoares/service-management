@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import com.sun.mail.util.MailConnectException;
 import javax.mail.Authenticator;
 import javax.mail.AuthenticationFailedException;
 import javax.mail.Message;
@@ -79,6 +80,13 @@ public class EmailService {
                             + " para SMTP (Gmail > Seguridad > Contraseñas de aplicaciones).",
                     ex);
             return false;
+        } catch (MailConnectException ex) {
+            LOGGER.log(Level.WARNING,
+                    "No se pudo enviar el mail a " + to
+                            + ". No se pudo conectar al servidor SMTP. Verificá conectividad de red, firewall"
+                            + " y que estén habilitados host/puerto SMTP configurados en app.properties.",
+                    ex);
+            return false;
         } catch (MessagingException ex) {
             LOGGER.log(Level.WARNING, "No se pudo enviar el mail a " + to, ex);
             return false;
@@ -110,10 +118,14 @@ public class EmailService {
 
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        props.put("mail.smtp.starttls.enable", AppConfig.get("mail.smtp.starttls.enable", "true"));
+        props.put("mail.smtp.host", AppConfig.get("mail.smtp.host", "smtp.gmail.com"));
+        props.put("mail.smtp.port", AppConfig.get("mail.smtp.port", "587"));
+        props.put("mail.smtp.ssl.trust", AppConfig.get("mail.smtp.ssl.trust", "smtp.gmail.com"));
+        props.put("mail.smtp.connectiontimeout", resolveTimeout("mail.smtp.connectiontimeout", 10000));
+        props.put("mail.smtp.timeout", resolveTimeout("mail.smtp.timeout", 10000));
+        props.put("mail.smtp.writetimeout", resolveTimeout("mail.smtp.writetimeout", 10000));
+        props.put("mail.debug", AppConfig.get("mail.debug", "false"));
 
         Authenticator auth = new Authenticator() {
             @Override
@@ -123,5 +135,18 @@ public class EmailService {
         };
 
         return Session.getInstance(props, auth);
+    }
+
+    private String resolveTimeout(String key, int defaultMs) {
+        String configured = AppConfig.get(key, String.valueOf(defaultMs));
+        try {
+            int value = Integer.parseInt(configured);
+            if (value < 0) {
+                return String.valueOf(defaultMs);
+            }
+            return String.valueOf(value);
+        } catch (NumberFormatException ex) {
+            return String.valueOf(defaultMs);
+        }
     }
 }
