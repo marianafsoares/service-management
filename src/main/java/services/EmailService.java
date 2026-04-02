@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import com.sun.mail.util.MailConnectException;
 import javax.mail.Authenticator;
 import javax.mail.AuthenticationFailedException;
 import javax.mail.Message;
@@ -26,10 +27,12 @@ public class EmailService {
 
     private final Session session;
     private final String from;
+    private final String password;
 
     public EmailService() {
         this.from = resolveSender();
-        this.session = buildSession(from, resolvePassword());
+        this.password = resolvePassword();
+        this.session = buildSession(from, password);
     }
 
     public boolean sendEmail(String to, String subject, String body) {
@@ -41,42 +44,34 @@ public class EmailService {
             return false;
         }
         try {
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(from));
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
-            message.setSubject(subject);
-
-            MimeBodyPart bodyPart = new MimeBodyPart();
-            if (htmlBody) {
-                bodyPart.setContent(body, "text/html; charset=UTF-8");
-            } else {
-                bodyPart.setText(body, "UTF-8");
-            }
-
-            if (attachments == null || attachments.isEmpty()) {
-                message.setContent(bodyPart.getContent(), bodyPart.getContentType());
-            } else {
-                MimeMultipart multipart = new MimeMultipart();
-                multipart.addBodyPart(bodyPart);
-                for (File attachment : attachments) {
-                    if (attachment == null || !attachment.exists()) {
-                        continue;
-                    }
-                    MimeBodyPart attachmentPart = new MimeBodyPart();
-                    attachmentPart.setDataHandler(new DataHandler(new FileDataSource(attachment)));
-                    attachmentPart.setFileName(attachment.getName());
-                    multipart.addBodyPart(attachmentPart);
-                }
-                message.setContent(multipart);
-            }
-
-            Transport.send(message);
+            sendWithSession(session, to, subject, body, attachments, htmlBody);
             return true;
         } catch (AuthenticationFailedException ex) {
             LOGGER.log(Level.WARNING,
                     "No se pudo enviar el mail a " + to
                             + ". Activá la verificación en dos pasos en la cuenta y generá una contraseña de aplicación"
                             + " para SMTP (Gmail > Seguridad > Contraseñas de aplicaciones).",
+                    ex);
+            return false;
+        } catch (MailConnectException ex) {
+            if (canRetryWithGmailSslFallback()) {
+                try {
+                    Session fallbackSession = buildGmailSslFallbackSession(from, password);
+                    sendWithSession(fallbackSession, to, subject, body, attachments, htmlBody);
+                    LOGGER.log(Level.INFO,
+                            "Mail enviado a {0} usando fallback SMTP SSL (smtp.gmail.com:465).",
+                            to);
+                    return true;
+                } catch (MessagingException | IOException fallbackEx) {
+                    LOGGER.log(Level.WARNING,
+                            "Falló también el fallback SMTP SSL (smtp.gmail.com:465) al enviar a " + to + ".",
+                            fallbackEx);
+                }
+            }
+            LOGGER.log(Level.WARNING,
+                    "No se pudo enviar el mail a " + to
+                            + ". No se pudo conectar al servidor SMTP. Verificá conectividad de red, firewall"
+                            + " y que estén habilitados host/puerto SMTP configurados en app.properties.",
                     ex);
             return false;
         } catch (MessagingException ex) {
@@ -86,6 +81,40 @@ public class EmailService {
             Logger.getLogger(EmailService.class.getName()).log(Level.SEVERE, null, ex);
         }
         return false;
+    }
+
+    private void sendWithSession(Session targetSession, String to, String subject, String body,
+            List<File> attachments, boolean htmlBody) throws MessagingException, IOException {
+        Message message = new MimeMessage(targetSession);
+        message.setFrom(new InternetAddress(from));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+        message.setSubject(subject);
+
+        MimeBodyPart bodyPart = new MimeBodyPart();
+        if (htmlBody) {
+            bodyPart.setContent(body, "text/html; charset=UTF-8");
+        } else {
+            bodyPart.setText(body, "UTF-8");
+        }
+
+        if (attachments == null || attachments.isEmpty()) {
+            message.setContent(bodyPart.getContent(), bodyPart.getContentType());
+        } else {
+            MimeMultipart multipart = new MimeMultipart();
+            multipart.addBodyPart(bodyPart);
+            for (File attachment : attachments) {
+                if (attachment == null || !attachment.exists()) {
+                    continue;
+                }
+                MimeBodyPart attachmentPart = new MimeBodyPart();
+                attachmentPart.setDataHandler(new DataHandler(new FileDataSource(attachment)));
+                attachmentPart.setFileName(attachment.getName());
+                multipart.addBodyPart(attachmentPart);
+            }
+            message.setContent(multipart);
+        }
+
+        Transport.send(message);
     }
 
     private String resolveSender() {
@@ -110,10 +139,14 @@ public class EmailService {
 
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        props.put("mail.smtp.starttls.enable", AppConfig.get("mail.smtp.starttls.enable", "true"));
+        props.put("mail.smtp.host", AppConfig.get("mail.smtp.host", "smtp.gmail.com"));
+        props.put("mail.smtp.port", AppConfig.get("mail.smtp.port", "587"));
+        props.put("mail.smtp.ssl.trust", AppConfig.get("mail.smtp.ssl.trust", "smtp.gmail.com"));
+        props.put("mail.smtp.connectiontimeout", resolveTimeout("mail.smtp.connectiontimeout", 10000));
+        props.put("mail.smtp.timeout", resolveTimeout("mail.smtp.timeout", 10000));
+        props.put("mail.smtp.writetimeout", resolveTimeout("mail.smtp.writetimeout", 10000));
+        props.put("mail.debug", AppConfig.get("mail.debug", "false"));
 
         Authenticator auth = new Authenticator() {
             @Override
@@ -123,5 +156,52 @@ public class EmailService {
         };
 
         return Session.getInstance(props, auth);
+    }
+
+    private Session buildGmailSslFallbackSession(String username, String password) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            return null;
+        }
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "465");
+        props.put("mail.smtp.ssl.enable", "true");
+        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        props.put("mail.smtp.connectiontimeout", resolveTimeout("mail.smtp.connectiontimeout", 10000));
+        props.put("mail.smtp.timeout", resolveTimeout("mail.smtp.timeout", 10000));
+        props.put("mail.smtp.writetimeout", resolveTimeout("mail.smtp.writetimeout", 10000));
+        props.put("mail.debug", AppConfig.get("mail.debug", "false"));
+
+        Authenticator auth = new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(username, password);
+            }
+        };
+        return Session.getInstance(props, auth);
+    }
+
+    private boolean canRetryWithGmailSslFallback() {
+        String enabled = AppConfig.get("mail.smtp.fallback.gmail.ssl", "true");
+        if (!"true".equalsIgnoreCase(enabled)) {
+            return false;
+        }
+        String host = AppConfig.get("mail.smtp.host", "smtp.gmail.com");
+        String port = AppConfig.get("mail.smtp.port", "587");
+        return "smtp.gmail.com".equalsIgnoreCase(host) && "587".equals(port);
+    }
+
+    private String resolveTimeout(String key, int defaultMs) {
+        String configured = AppConfig.get(key, String.valueOf(defaultMs));
+        try {
+            int value = Integer.parseInt(configured);
+            if (value < 0) {
+                return String.valueOf(defaultMs);
+            }
+            return String.valueOf(value);
+        } catch (NumberFormatException ex) {
+            return String.valueOf(defaultMs);
+        }
     }
 }
